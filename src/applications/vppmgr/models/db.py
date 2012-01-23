@@ -11,7 +11,7 @@
 
 if not request.env.web2py_runtime_gae:
     ## if NOT running on Google App Engine use SQLite or other DB
-    db = DAL('sqlite://vpp.sqlite')
+    db = DAL(settings.database_uri) 
 else:
     ## connect to Google BigTable (optional 'google:datastore://namespace')
     db = DAL('google:datastore')
@@ -47,8 +47,8 @@ crud, service, plugins = Crud(db), Service(), PluginManager()
 
 ########################################
 db.define_table('auth_user',
-    Field('username', type='string',
-          label=T('Username')),
+    # Field('username', type='string',
+    #      label=T('Username')),
     Field('first_name', type='string',
           label=T('First Name')),
     Field('last_name', type='string',
@@ -69,24 +69,24 @@ db.define_table('auth_user',
           writable=False,readable=False),
     Field('registration_id',default='',
           writable=False,readable=False),
-    format='%(username)s',
+    format='%(email)s',
     migrate=settings.migrate)
 
 
 db.auth_user.first_name.requires = IS_NOT_EMPTY(error_message=auth.messages.is_empty)
 db.auth_user.last_name.requires = IS_NOT_EMPTY(error_message=auth.messages.is_empty)
 db.auth_user.password.requires = CRYPT(key=auth.settings.hmac_key)
-db.auth_user.username.requires = IS_NOT_IN_DB(db, db.auth_user.username)
+# db.auth_user.username.requires = IS_NOT_IN_DB(db, db.auth_user.username)
 db.auth_user.registration_id.requires = IS_NOT_IN_DB(db, db.auth_user.registration_id)
 db.auth_user.email.requires = (IS_EMAIL(error_message=auth.messages.invalid_email),
                                IS_NOT_IN_DB(db, db.auth_user.email))
-auth.define_tables(migrate = settings.migrate)
+auth.define_tables(username=False, migrate=settings.migrate)
 
-## configure email
-mail=auth.settings.mailer
-mail.settings.server = 'logging' or 'smtp.gmail.com:587'
-mail.settings.sender = 'you@gmail.com'
-mail.settings.login = 'username:password'
+## configure email for Kentfield Google Apps
+mail = auth.settings.mailer
+mail.settings.server = settings.email_server
+mail.settings.sender = settings.email_sender
+mail.settings.login  = settings.email_login
 
 ## configure auth policy
 auth.settings.registration_requires_verification = False
@@ -115,7 +115,3 @@ use_janrain(auth,filename='private/janrain.key')
 ## >>> for row in rows: print row.id, row.myfield
 #########################################################################
 
-
-mail.settings.server = settings.email_server
-mail.settings.sender = settings.email_sender
-mail.settings.login = settings.email_login

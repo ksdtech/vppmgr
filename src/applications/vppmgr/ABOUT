@@ -1,2 +1,18 @@
-Write something about this app.
+VPP Code Manager
 Developed with web2py.
+
+To customize your database and email settings, clip this snippet and
+save it as modules/app_config.py:
+
+# local application settings
+from gluon.storage import Storage
+app_settings = Storage()
+
+app_settings.author = 'username'
+app_settings.domain = 'example.com'
+app_settings.email_server = 'smtp.gmail.com:587'
+app_settings.email_sender = 'username@gmail.com'
+app_settings.email_login = 'username@gmail.com:password'
+app_settings.database_uri = 'sqlite://vpp.sqlite'
+app_settings.vpp_coll_name = 'iOS+VPP+Codes'
+app_settings.default_vpp_user = 'username@example.com'
