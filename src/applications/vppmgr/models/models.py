@@ -15,6 +15,24 @@
 ## >>> for row in rows: print row.id, row.myfield
 #########################################################################
 
+# app
+db.define_table('product',
+    Field('name', type='string',
+        label=T('Name')),
+    Field('app_store_id', type='string',
+        label=T('AppStore ID')),
+    Field('app_store_link', type='string',
+        label=T('AppStore Link')),
+    Field('price', type='string',
+        label=T('Price')),
+    Field('created_on','datetime', default=request.now,
+        label=T('Created On'), writable=False, readable=False),
+    Field('modified_on','datetime', default=request.now,
+        label=T('Modified On'), writable=False, readable=False,
+        update=request.now),
+    format='%(name)s %(id)s',
+    migrate=settings.migrate)
+
 # iOS device
 db.define_table('device',
     Field('name', type='string',
@@ -42,6 +60,7 @@ db.define_table('vpp_order',
         label=T('Spreadsheet Name')),
     Field('product_name', type='string',
         label=T('Product Name')),
+    Field('product', db.product),
     Field('created_on','datetime', default=request.now,
         label=T('Created On'), writable=False, readable=False),
     Field('modified_on','datetime', default=request.now,
@@ -67,5 +86,3 @@ db.define_table('vpp_code',
         update=request.now),
     format='%(code)s',
     migrate=settings.migrate)
-
-

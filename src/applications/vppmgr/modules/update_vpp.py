@@ -1,4 +1,4 @@
-def update_vpp_codes(db, settings, vpp_orders):
+def update_vpp_orders(db, settings, vpp_orders):
     stats = dict(orders=0, redeemed=0, reserved=0, unused=0)
     for ss_name in vpp_orders.iterkeys():
         vpp_order = vpp_orders[ss_name]
@@ -45,4 +45,22 @@ def update_vpp_codes(db, settings, vpp_orders):
                 vpp_order=order,
                 device=device,
                 owner=owner)
+    return stats
+    
+def update_products(db, settings, products):
+    stats = dict(free=0, vpp=0)
+    for app_store_id in products.iterkeys():
+        product = products[app_store_id]
+        name = product['name']
+        link = product['app_store_link']
+        price = product['price']
+        prod = db.product.update_or_insert(db.product.app_store_id == app_store_id,
+            name=name,
+            app_store_id=app_store_id,
+            app_store_link=link,
+            price=price)
+        if price == '0.00':
+            stats['free'] += 1
+        else:
+            stats['vpp'] += 1
     return stats
