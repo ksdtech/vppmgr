@@ -1,0 +1,8 @@
+{{extend 'layout.html'}}
+{{from urllib import quote_plus}}
+
+<h1>Click link to Import Spreadsheet from Google Docs</h1>
+
+{{for ss_name in spreadsheets:}}
+<p>{{=A(ss_name, _href='import_one?ss_name=%s' % (quote_plus(ss_name)))}}</a></p>
+{{pass}}
