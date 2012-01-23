@@ -64,3 +64,13 @@ def update_products(db, settings, products):
         else:
             stats['vpp'] += 1
     return stats
+    
+def select_spreadsheets(db, ss_names=None):
+    if ss_names is not None:
+        for ss_name in ss_names:
+            db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name == ss_name, spreadsheet_name=ss_name)
+    return db().select(db.vpp_order.ALL, orderby=db.vpp_order.spreadsheet_name)
+
+def select_apps(db):
+    return db().select(db.product.ALL, orderby=db.product.name)
+    

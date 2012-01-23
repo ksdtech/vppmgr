@@ -3,7 +3,7 @@ import gdata.docs.client
 import gdata.spreadsheet
 import gdata.spreadsheet.service
 import re
-# from urllib import quote_plus
+from urllib import quote_plus
 
 def find_spreadsheet(ss_feed, name):
     for entry in ss_feed.entry:

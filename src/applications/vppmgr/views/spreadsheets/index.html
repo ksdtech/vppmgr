@@ -1,8 +1,31 @@
 {{extend 'layout.html'}}
-{{from urllib import quote_plus}}
+{{from ss_helper import spreadsheet_import_link, spreadsheet_app_select}}
 
-<h1>Click link to Import Spreadsheet from Google Docs</h1>
+<style>
+	.even { background-color: #FFC; }
+</style>
 
-{{for ss_name in spreadsheets:}}
-<p>{{=A(ss_name, _href='import_one?ss_name=%s' % (quote_plus(ss_name)))}}</a></p>
+<h1>Manage VPP Spreadsheets</h1>
+
+<p>Instructions: Click link on spreadsheet name to import codes from 
+	one spreadsheet, or click the <strong>Import All</strong> link to import
+	from all.<br/>
+	<a href="spreadsheets/import_all">Import All</a></p>
+<p>Assign an app registered in the database to each spreadsheet
+	and click <strong>Submit</strong>, or click the <strong>Clear Apps</strong> link
+	to reset all spreadsheets to the closest matching app name.<br/>
+	<a href="spreadsheets/clear_apps">Clear Apps<a/></p>
+<form method="POST">
+	<table>
+	<tr><td style="text-align:right;">Spreadsheet Name</td><td>App Name</td></tr>
+{{for i, ss in enumerate(spreadsheets):}}
+	<tr class="{{='odd' if i%2 else 'even'}}">
+		<td style="text-align:right;">{{=XML(spreadsheet_import_link(spreadsheets, i))}}</td>
+		<td>{{=XML(spreadsheet_app_select(spreadsheets, i, apps))}}</td>
+	</tr>
 {{pass}}
+	</table>
+	<input type="submit" name="submit" value="Submit" />
+</form>
+<p><a href="spreadsheets/import_all">Import All</a><br/>
+	<a href="spreadsheets/clear_apps">Clear Apps<a/></p>

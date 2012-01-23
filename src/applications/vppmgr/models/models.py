@@ -51,7 +51,7 @@ db.define_table('device',
         update=request.now),
     format='%(name)s %(id)s',
     migrate=settings.migrate)
-
+    
 # VPP order
 db.define_table('vpp_order',
     Field('order_number', type='string',
@@ -66,7 +66,7 @@ db.define_table('vpp_order',
     Field('modified_on','datetime', default=request.now,
         label=T('Modified On'), writable=False, readable=False,
         update=request.now),
-    format='%(product_name)s %(order_number)s',
+    format='%(spreadsheet_name)s %(id)s',
     migrate=settings.migrate)
 
 # VPP redemption code
