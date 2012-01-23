@@ -1,0 +1,42 @@
+*~
+tmp*
+*.tmp
+*.bak
+*.pyc
+*.pid
+*.log
+cron.master
+ticket_storage.txt
+
+# Private files
+################################################################################
+app_config.py
+
+# Build artifacts
+################################################################################
+nosetests.xml
+coverage.xml
+.coverage
+*.cover
+.figleaf
+report.html
+pyccuracy_report.html
+
+# Sass artifacts
+################################################################################
+.sass-cache/
+
+# System artifacts
+################################################################################
+PIL.pth
+
+# Web2py artifacts
+################################################################################
+# Default apps
+admin/
+examples/
+welcome/
+# Non-code
+sessions/
+uploads/
+databases/
