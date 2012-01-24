@@ -44,7 +44,7 @@ def import_all():
     return dict(updates=updates)
     
 def clear_apps():
-    db(db.vpp_order.id != 0).update(product=None)
+    db(db.vpp_order).update(product=None)
     response.flash = 'All apps cleared'
     redirect('index')
     

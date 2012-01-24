@@ -11,6 +11,7 @@ ticket_storage.txt
 # Private files
 ################################################################################
 app_config.py
+vppusers.csv
 
 # Build artifacts
 ################################################################################
@@ -41,3 +42,4 @@ sessions/
 uploads/
 databases/
 errors/
+private/
