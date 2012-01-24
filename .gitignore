@@ -6,6 +6,7 @@ tmp*
 *.pid
 *.log
 cron.master
+parameters_8000.py
 ticket_storage.txt
 
 # Private files
