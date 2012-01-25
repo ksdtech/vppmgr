@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-from import_vpp import read_products
-from update_vpp import select_apps, update_products
 
 def index():
-    app_rows = select_apps(db)
-    return dict(apps=app_rows)
+    group_id = request.vars['group']
+    group_name = None
+    app_rows = vpp_manager.select_apps(group_id)
+    group_rows = vpp_manager.select_groups(db)
+    if group_id is not None:
+        group_names = [g.name for g in group_rows if g.id==int(group_id)]
+        if len(group_names) > 0:
+            group_name = group_names[0]
+        else:
+            group_id = None
+    return dict(apps=app_rows, groups=group_rows, group=group_id, group_name=group_name)
 
 def import_all():
-    email, password = app_settings.email_login.split(':')
-    products = read_products(email, password, app_settings.product_ss_name)
-    updates = update_products(db, settings, products)
+    updates = vpp_manager.populate_product_table()
     request.flash = "Updated %d free and %d vpp apps" % (updates['free'], updates['vpp'])
     redirect('index')

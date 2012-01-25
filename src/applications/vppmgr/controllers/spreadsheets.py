@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from import_vpp import get_spreadsheets_in_collection, read_vpp_orders
-from update_vpp import select_spreadsheets, select_apps, update_vpp_orders
 import re
 
 def index():
@@ -16,10 +14,9 @@ def index():
                     ss.update_record(product=product_id)
                     n += 1
         response.flash = '%d spreadsheet records updated' % (n)
-    email, password = app_settings.email_login.split(':')
-    ss_names = get_spreadsheets_in_collection(email, password, app_settings.vpp_coll_name)
-    ss_rows = select_spreadsheets(db, ss_names)
-    app_rows = select_apps(db)
+    ss_names = vpp_manager.get_vpp_spreadsheets()
+    ss_rows = vpp_manager.select_spreadsheets(ss_names)
+    app_rows = vpp_manager.select_apps()
     return dict(spreadsheets=ss_rows, apps=app_rows)        
 
 # GET /vppmgr/spreadsheets/import_one/1
@@ -30,17 +27,13 @@ def import_one():
         ss = db(db.spreadsheet.id == ss_id).select().first()
     if ss is None:
         raise HTTP(404)
-    email, password = app_settings.email_login.split(':')
-    vpp_orders = read_vpp_orders(email, password, [ ss['spreadsheet_name'] ])
-    updates = update_vpp_orders(db, settings, vpp_orders)
+    vpp_orders = vpp_manager.read_vpp_orders([ ss['spreadsheet_name'] ])
+    updates = vpp_manager.update_vpp_orders(vpp_orders)
     return dict(updates=updates)
 
 # GET /vppmgr/spreadsheets/import_all    
 def import_all():
-    email, password = app_settings.email_login.split(':')
-    ss_names = get_spreadsheets_in_collection(email, password, app_settings.vpp_coll_name)
-    vpp_orders = read_vpp_orders(email, password, ss_names)
-    updates = update_vpp_orders(db, settings, vpp_orders)
+    updates = vpp_manager.populate_vpp_order_table()
     return dict(updates=updates)
     
 def clear_apps():
