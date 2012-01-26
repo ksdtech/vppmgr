@@ -112,9 +112,9 @@ db.define_table('invitation',
     Field('body', 'text',
         label=T('Body')),
     Field('products', 'list:reference product',
-        label=T('Products'))
+        label=T('Products')),
     Field('vpp_codes', 'list:reference vpp_code',
-        label=T('VPP Codes'))
+        label=T('VPP Codes')),
     Field('last_sent_on', 'datetime',
         label=T('Last Sent')),
     Field('last_status', 'string',

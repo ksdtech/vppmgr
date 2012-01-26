@@ -4,7 +4,7 @@ def index():
     group_id = request.vars['group']
     group_name = None
     app_rows = vpp_manager.select_apps(group_id)
-    group_rows = vpp_manager.select_groups(db)
+    group_rows = vpp_manager.select_groups()
     if group_id is not None:
         group_names = [g.name for g in group_rows if g.id==int(group_id)]
         if len(group_names) > 0:

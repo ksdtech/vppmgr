@@ -7,7 +7,7 @@ import re
 from urllib import quote_plus
 
 class VppManager:
-    def __init__(db, app_settings, mailer):
+    def __init__(self, db, app_settings, mailer):
         self.db = db
         self.settings = app_settings
         self.mailer = mailer
@@ -166,7 +166,7 @@ class VppManager:
             #  Device Group: Column 6
             row = int(entry.cell.row)
             col = int(entry.cell.col)
-            elif row >= 11 and col == 1:
+            if row >= 11 and col == 1:
                 found_code = entry.cell.text
                 if found_code == code:
                     success = self._update_vpp_cells_in_row(ss_key, ws_key, row, status, user, device)
@@ -190,7 +190,7 @@ class VppManager:
     def get_vpp_spreadsheets(self, coll_name=None):
         gd_client = self._docs_client()
         if coll_name is None:
-            col_name = self.settings.vpp_coll_name
+            coll_name = self.settings.vpp_coll_name
         folder_feed = gd_client.GetDocList(uri='/feeds/default/private/full/-/folder?title=%s&title-exact=true&max-results=1' % (quote_plus(coll_name)))
         folder = folder_feed.entry[0]
         res_id = folder.resource_id.text

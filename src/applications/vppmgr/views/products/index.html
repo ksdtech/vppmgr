@@ -18,9 +18,13 @@
 	<a href="/vppmgr/products/import_all">Import All</a></p>
 <form method="POST">
 	<table>
-		<tr><td>Users - Type usernames or email addresses, separated by commas</td></tr>
+		<tr><td>User - Type usernames or email address</td></tr>
 		<tr>
-			<td><textarea name="users" rows="3" cols="80"></textarea></td>
+			<td><input type="text" name="user_email" id="user_email" size="80" /></td>
+		</tr>
+		<tr><td>Device - Type device name</td></tr>
+		<tr>
+			<td><input type="text" name="device_name" id="device_name" size="20" /></td>
 		</tr>
 		<tr><td><input type="checkbox" class="appcheck" name="check_all" onclick="jQuery('.appcheck').attr('checked', 'checked')" />&nbsp;Check All</td></tr>
 		<tr><td><input type="checkbox" class="appcheck" name="check_none" onclick="jQuery('.appcheck').removeAttr('checked');" />&nbsp;Check None</td></tr>
