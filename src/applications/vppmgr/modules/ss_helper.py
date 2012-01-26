@@ -18,7 +18,7 @@ def spreadsheet_import_link(spreadsheets, i):
     return '<a href="import_one/%d">Import %s</a>' % (spreadsheets[i].id, spreadsheets[i].spreadsheet_name)
     
 def spreadsheet_app_select(spreadsheets, i, apps):
-    select_id = 'sel_%d' % (spreadsheets[i].id)
+    select_id = 'ss_%d' % (spreadsheets[i].id)
     selected_app = spreadsheets[i].product
     if selected_app is None:
         selected_app = nearest_app_match(apps, spreadsheets[i].spreadsheet_name_nocase)

@@ -5,8 +5,8 @@ def index():
     if request.env.request_method == 'POST': # postback
         n = 0
         for k in request.post_vars.iterkeys():
-            m = re.match(r'sel_(\d+)', k)
-            if m:
+            m = re.match(r'ss_(\d+)', k)
+            if m is not None:
                 ss_id = int(m.group(1))
                 product_id = int(request.post_vars[k])
                 ss = db.vpp_order[ss_id]

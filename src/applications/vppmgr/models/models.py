@@ -51,8 +51,12 @@ db.define_table('device',
         label=T('Asset Number')),
     Field('serial_number', 'string',
         label=T('Serial Number')),
+    Field('apple_device_id', 'string',
+        label=T('Apple Device ID')),
     Field('location', 'string',
         label=T('Location')),
+    Field('room', 'string',
+        label=T('Room')),
     Field('owner', db.auth_user),
     Field('created_on', 'datetime', default=request.now,
         label=T('Created On'), writable=False, readable=False),
@@ -136,6 +140,9 @@ vpp_manager=VppManager(db, app_settings, settings.mailer)
 
 if db(db.auth_user).isempty():
     vpp_manager.populate_user_table()
+    
+if db(db.device).isempty():
+    vpp_manager.populate_device_table()
 
 if db(db.product).isempty():
     vpp_manager.populate_product_table()

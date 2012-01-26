@@ -22,16 +22,20 @@
 		<tr>
 			<td><input type="text" name="user_email" id="user_email" size="80" /></td>
 		</tr>
-		<tr><td>Device - Type device name</td></tr>
 		<tr>
-			<td><input type="text" name="device_name" id="device_name" size="20" /></td>
+			<td><select name="device" id="device">
+				<option value="">Select the device</option>
+{{for d in devices:}}
+				<option value="{{=d.id}}">{{=d.name}}</option>
+{{pass}}
+				</select></td>
 		</tr>
 		<tr><td><input type="checkbox" class="appcheck" name="check_all" onclick="jQuery('.appcheck').attr('checked', 'checked')" />&nbsp;Check All</td></tr>
 		<tr><td><input type="checkbox" class="appcheck" name="check_none" onclick="jQuery('.appcheck').removeAttr('checked');" />&nbsp;Check None</td></tr>
 		<tr><td>Apps - Check box next to app names</td></tr>
 {{for i, ss in enumerate(apps):}}
 		<tr class="{{='odd' if i%2 else 'even'}}">
-			<td><input type="checkbox" class="appcheck" name="{{='app_%d' % apps[i].id}}" />&nbsp;{{=apps[i].name}}, {{=apps[i].price}}</td>
+			<td><input type="checkbox" class="appcheck" name="{{='app_%d' % apps[i].id}}" value="1" />&nbsp;{{=apps[i].name}}, {{=apps[i].price}}</td>
 		</tr>
 {{pass}}
 	</table>

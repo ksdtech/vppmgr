@@ -36,6 +36,15 @@ class VppManager:
         ss_client.ProgrammaticLogin()
         return ss_client
     
+    # utility functions
+    def domain_user(self, user_email):
+        if user_email is not None and user_email != '':
+            if user_email.find('@') < 0:
+                user_email += '@'
+                user_email += self.settings.domain
+            return user_email
+        return None
+    
     # gdata private read operations
     def _read_vpp_data(self, ss_client, ss_name, ss_key):
         vpp_order = dict()
@@ -131,23 +140,23 @@ class VppManager:
                     products[product_id]['groups'].append(groups[col-6])
         return products
     
-    def _update_vpp_cells_in_row(self, ss_key, ws_key, row, status, user, device):
+    def _update_vpp_cells_in_row(self, ss_key, ws_key, row, status, user_email, device_name):
         e4 = ss_client.UpdateCell(row=row, col=4, inputValue=status, 
             key=ss_key, wksht_id=ws_key)
         if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
             return False
-        e5 = ss_client.UpdateCell(row=row, col=5, inputValue=device, 
+        e5 = ss_client.UpdateCell(row=row, col=5, inputValue=device_name, 
             key=ss_key, wksht_id=ws_key)
         if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
             return False
-        e6 = ss_client.UpdateCell(row=row, col=6, inputValue=user, 
+        e6 = ss_client.UpdateCell(row=row, col=6, inputValue=user_email, 
             key=ss_key, wksht_id=ws_key)
         if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
             return False
         return True
     
     # gdata private update operations
-    def _update_vpp_code_in_spreadsheet(self, ss_client, ss_name, ss_key, code, status, user, device):
+    def _update_vpp_code_in_spreadsheet(self, ss_client, ss_name, ss_key, code, status, user_email, device_name):
         ss_ws_feed = ss_client.GetWorksheetsFeed(ss_key)
         ws_entry = ss_ws_feed.entry[0]
         ws_key = ws_entry.id.text.rsplit('/', 1)[1]
@@ -169,19 +178,19 @@ class VppManager:
             if row >= 11 and col == 1:
                 found_code = entry.cell.text
                 if found_code == code:
-                    success = self._update_vpp_cells_in_row(ss_key, ws_key, row, status, user, device)
+                    success = self._update_vpp_cells_in_row(ss_key, ws_key, row, status, user_email, device_name)
                     break
         return success
         
-    def _next_pending_vpp_code(self, ss_client, product, user, device):
+    def _next_pending_vpp_code(self, ss_client, product_id, user_email, device_name):
         db = self.db
-        vpp_code = db(db.vpp_code.status=='Unused' & db.vpp_code.vpp_order.product==product_id).select().first()
+        vpp_code = db(db.vpp_code.status=='Unused' & db.vpp_order.id=db.vpp_code.vpp_order & db.vpp_order.product==product_id).select().first()
         if vpp_code is not None:
             ss_feed = ss_client.GetSpreadsheetsFeed()
             ss_name = vpp_code.vpp_order.spreadsheet_name
             ss_key = self._find_spreadsheet(ss_feed, ss_name)
             if ss_key is not None:
-                if _update_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code, 'Pending', user, device):
+                if _update_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code, 'Pending', user_email, device_Name):
                     vpp_code.update(status='Pending')
                     return vpp_code
         return None
@@ -251,17 +260,41 @@ class VppManager:
         db = self.db
         return db().select(db.product_group.ALL, orderby=db.product_group.name)
 
+    def select_devices(self):
+        db = self.db
+        return db().select(db.device.ALL, orderby=db.device.name)
+
     # database insert operations
     def populate_user_table(self):
         db = self.db
-        user_reader = csv.DictReader(open(self.settings.user_file))
-        for row in user_reader:
+        file_name = self.settings.populate_folder + 'auth_user.csv'
+        reader = csv.DictReader(open(file_name))
+        for row in reader:
             email, email_error = db.auth_user.email.validate(row['email'])
             password, password_error = db.auth_user.password.validate(row['password'])
             if email_error is None and password_error is None:
                 db.auth_user.insert(email=email, password=password,
                     first_name=row['first_name'],
                     last_name=row['last_name'])
+
+    def populate_device_table(self):
+        db = self.db
+        file_name = self.settings.populate_folder + 'device.csv'
+        reader = csv.DictReader(open(file_name))
+        for row in reader:
+            owner_id = None
+            user_email = self.domain_user(row['user'])
+            if user_email is not None:
+                user = db(db.auth_user.email == user_email).select().first()
+                if user is not None:
+                    owner_id = user.id
+            db.device.insert(name=row['name'],
+                asset_number=row['asset_number'],
+                serial_number=row['serial_number'],
+                apple_device_id=row['apple_device_id'],
+                location=row['location'],
+                room=row['room'],
+                owner=owner_id)
     
     def populate_product_table(self):             
         products = self.read_products()
@@ -273,19 +306,17 @@ class VppManager:
         return self.update_vpp_orders(vpp_orders)
 
     # email operations
-    def queue_and_send_message(self, recipient, device, subject, apps):
+    def queue_and_send_message(self, recipient, device, products):
         ss_client = self._ss_client()
-        products = [ ]
         codes = [ ]
         body_lines = [ ]
         body_lines.append('Here are the links to your redemption codes and')
         body_lines.append('other download links for the apps you requested:')
 
-        for app in apps:
+        for product in products:
             body_lines.append('')
-            body_lines.append('%s:' % (app.name))
-            products.append(app.id)
-            vpp_code = _next_pending_vpp_code(ss_client, app, recipient, device)
+            body_lines.append('%s:' % (product.name))
+            vpp_code = self._next_pending_vpp_code(ss_client, product.id, recipient, device.name)
             if vpp_code is not None:
                 if vpp_code:
                     codes.append(vpp_code.id)
@@ -295,14 +326,14 @@ class VppManager:
         body_lines.append('')
         body_lines.append('--App Administrator')            
 
-        subject = 'Please install these apps'
+        subject = 'Download instructions for iPad apps'
         body = "\n".join(body_lines)
         
         db = self.db
         msg_id = db.invitation.insert(recipient=recipient,
             subject=subject,
             body=body,
-            products=products,
+            products=[p.id for p in products],
             vpp_codes=codes)
         success = self.mailer.send(to=[ recipient ], subject=subject, message=body)
         timestamp = datetime.datetime.now()
@@ -333,11 +364,7 @@ class VppManager:
                 device = None
                 owner = None
                 device_name = vpp_code.get('device_name')
-                user_email = vpp_code.get('user_email')
-                if user_email is not None:
-                    if user_email.find('@') < 0:
-                        user_email += '@'
-                        user_email += self.settings.domain
+                user_email = self.domain_user(vpp_code.get('user_email'))
                 status = vpp_code.get('status')
                 if status is None:
                     status = 'Unused'
