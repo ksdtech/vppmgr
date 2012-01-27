@@ -3,6 +3,7 @@ import gdata.docs.client
 import gdata.spreadsheet
 import gdata.spreadsheet.service
 import csv
+import datetime
 import re
 from urllib import quote_plus
 
@@ -196,7 +197,7 @@ class VppManager:
                 ws_key, row = self._find_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code)
                 if row is not None:
                     success = self._update_vpp_cells_in_row(ss_client, ss_name, ss_key, ws_key, row, 'Pending', user_email, device_name)
-                    vpp_code.update(status='Pending')
+                    vpp_code.update_record(status='Pending')
                     return vpp_code
         return None
         
@@ -342,13 +343,15 @@ class VppManager:
             body=body,
             products=product_ids,
             vpp_codes=vpp_code_ids)
-            
-        success = self.mailer.send(to=[ recipient ], subject=subject, message=body)
-        timestamp = datetime.datetime.now()
-        status = 'Sent'
-        if not success:
-            status = 'Errors: %s' % (self.mailer.error)
-        db.invitation(msg_id).update(last_sent_on=timestamp, last_status=status)
+        print 'inserted invitation %s' % (msg_id)
+        
+        if msg_id is not None and self.mailer is not None:
+            success = self.mailer.send(to=[ recipient ], subject=subject, message=body)
+            timestamp = datetime.datetime.now()
+            status = 'Sent'
+            if not success:
+                status = 'Errors: %s' % (self.mailer.error)
+            db.invitation(msg_id).update(last_sent_on=timestamp, last_status=status)
         return msg_id
 
     # database update operations
