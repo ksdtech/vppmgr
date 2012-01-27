@@ -358,9 +358,9 @@ class VppManager:
                 link = vpp_code['link']
                 db.vpp_code.update_or_insert(db.vpp_code.code == code,
                     code=code, app_store_link=link, status=status,
-                    vpp_order=db_order.id,
-                    device=device.id,
-                    owner=owner.id)
+                    vpp_order=db_order,
+                    device=device,
+                    owner=owner)
         return stats
 
     def update_apps(self, apps):
