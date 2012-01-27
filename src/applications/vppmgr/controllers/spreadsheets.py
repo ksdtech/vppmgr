@@ -22,18 +22,18 @@ def index():
 # GET /vppmgr/spreadsheets/import_one/1
 def import_one():
     order_id = request.args(0)
-    ss = None
+    vpp_order = None
     if order_id is not None:
-        ss = db(db.spreadsheet.id == order_id).select().first()
-    if ss is None:
+        vpp_order = db(db.spreadsheet.id == order_id).select(limitby=(0,1)).first()
+    if vpp_order is None:
         raise HTTP(404)
-    vpp_orders = vpp_manager.read_vpp_orders([ ss['spreadsheet_name'] ])
-    updates = vpp_manager.update_vpp_orders(vpp_orders)
+    vpp_orders = vpp_manager.read_orders([ vpp_order['spreadsheet_name'] ])
+    updates = vpp_manager.update_orders(vpp_orders)
     return dict(updates=updates)
 
 # GET /vppmgr/spreadsheets/import_all    
 def import_all():
-    updates = vpp_manager.populate_vpp_order_table()
+    updates = vpp_manager.populate_order_table()
     return dict(updates=updates)
     
 def clear_apps():

@@ -20,6 +20,12 @@ db.define_table('app_group',
         label=T('Name')),
     format='%(name)s',
     migrate=settings.migrate)
+    
+# for case-insensitive ordering with compute fields
+def upcase_field(r, other_field):
+    if r[other_field] is None:
+        return None
+    return r[other_field].upper()
 
 # See http://web2py.com/books/default/chapter/29/6 on list:reference usage
 # app
@@ -27,11 +33,11 @@ db.define_table('app',
     Field('name', 'string',
         label=T('Name')),
     Field('name_nocase', 'string',
-        label=T('Name Nocase')),
+        label=T('Name Nocase'), compute=lambda r: upcase_field(r, 'name')),
     Field('app_store_id', 'string',
-        label=T('AppStore ID')),
+        label=T('AppStore ID'), unique=True),
     Field('app_store_link', 'string',
-        label=T('AppStore Link')),
+        label=T('AppStore Link'), unique=True),
     Field('price', 'string',
         label=T('Price')),
     Field('groups', 'list:reference app_group'),
@@ -46,13 +52,13 @@ db.define_table('app',
 # iOS device
 db.define_table('device',
     Field('name', 'string',
-        label=T('Name')),
+        label=T('Name'), unique=True),
     Field('asset_number', 'string',
-        label=T('Asset Number')),
+        label=T('Asset Number'), unique=True),
     Field('serial_number', 'string',
-        label=T('Serial Number')),
+        label=T('Serial Number'), unique=True),
     Field('apple_device_id', 'string',
-        label=T('Apple Device ID')),
+        label=T('Apple Device ID'), unique=True),
     Field('location', 'string',
         label=T('Location')),
     Field('room', 'string',
@@ -69,15 +75,15 @@ db.define_table('device',
 # VPP order
 db.define_table('vpp_order',
     Field('order_number', 'string',
-        label=T('Order Number')),
+        label=T('Order Number'), unique=True),
     Field('spreadsheet_name', 'string',
         label=T('Spreadsheet Name')),
     Field('spreadsheet_name_nocase', 'string',
-        label=T('Spreadsheet Nocase')),
+        label=T('Spreadsheet Nocase'), compute=lambda r: upcase_field(r, 'spreadsheet_name')),
     Field('product_name', 'string',
         label=T('Product Name')),
     Field('product_name_nocase', 'string',
-        label=T('Product Nocase')),
+        label=T('Product Nocase'), compute=lambda r: upcase_field(r, 'product_name')),
     Field('app', db.app),
     Field('created_on', 'datetime', default=request.now,
         label=T('Created On'), writable=False, readable=False),
@@ -90,9 +96,9 @@ db.define_table('vpp_order',
 # VPP redemption code
 db.define_table('vpp_code',
     Field('code', 'string',
-        label=T('Code')),
+        label=T('Code'), unique=True),
     Field('app_store_link', 'string',
-        label=T('App Store Link')),
+        label=T('App Store Link'), unique=True),
     Field('status', 'string', default='Unused', 
         requires=IS_IN_SET(['Unused', 'Pending', 'Redeemed', 'Reserved']),
         label=T('Status')),
@@ -148,5 +154,5 @@ if db(db.app).isempty():
     vpp_manager.populate_app_table()
 
 if db(db.vpp_order).isempty():
-    vpp_manager.populate_vpp_order_table()
+    vpp_manager.populate_order_table()
 

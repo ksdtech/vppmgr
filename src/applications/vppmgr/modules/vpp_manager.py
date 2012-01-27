@@ -3,7 +3,7 @@ import gdata.docs.client
 import gdata.spreadsheet
 import gdata.spreadsheet.service
 import csv
-import datetime
+from datetime import datetime
 import re
 from urllib import quote_plus
 
@@ -13,7 +13,8 @@ class VppManager:
         self.settings = app_settings
         self.mailer = mailer
 
-    # private utilities
+    # private interface    
+    # utility methods
     def _find_spreadsheet(self, order_feed, name):
         for entry in order_feed.entry:
             # print entry.title.text
@@ -21,7 +22,7 @@ class VppManager:
                 return entry.id.text.rsplit('/', 1)[1]
         return None
 
-    # private gdata login operations
+    # gdata login operations
     def _docs_client(self):
         email, password = self.settings.email_login.split(':')
         gd_client = gdata.docs.client.DocsClient(source='vpp-app.kentfieldschools.org.1')
@@ -35,19 +36,10 @@ class VppManager:
         ss_client.password = password
         ss_client.source = 'vpp-app.kentfieldschools.org.1'
         ss_client.ProgrammaticLogin()
-        return ss_client
+        return ss_client  
     
-    # utility functions
-    def domain_user(self, user_email):
-        if user_email is not None and user_email != '':
-            if user_email.find('@') < 0:
-                user_email += '@'
-                user_email += self.settings.domain
-            return user_email
-        return None
-    
-    # gdata private read operations
-    def _read_vpp_data(self, ss_client, spreadsheet_name, order_key):
+    # spreadsheet read operations
+    def _read_order_data(self, ss_client, spreadsheet_name, order_key):
         vpp_order = dict()
         vpp_order['spreadsheet_name'] = spreadsheet_name
         vpp_order['codes'] = [ ]
@@ -141,7 +133,7 @@ class VppManager:
                     apps[app_id]['groups'].append(groups[col-6])
         return apps
     
-    # gdata private update operations
+    # spreadsheet update operations
     def _find_vpp_code_in_spreadsheet(self, ss_client, spreadsheet_name, order_key, code):
         worksheet_feed = ss_client.GetWorksheetsFeed(order_key)
         worksheet_entry = worksheet_feed.entry[0]
@@ -188,7 +180,9 @@ class VppManager:
 
     def _next_pending_vpp_code(self, ss_client, app_id, user_email, device_name):
         db = self.db
-        vpp_code = db((db.vpp_code.status=='Unused') & (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id)).select(db.vpp_code.ALL).first()
+        vpp_code = db((db.vpp_code.status=='Unused') & 
+            (db.vpp_code.vpp_order==db.vpp_order.id) & 
+            (db.vpp_order.app==app_id)).select(db.vpp_code.ALL, limitby=(0,1)).first()
         if vpp_code is not None:
             order_feed = ss_client.GetSpreadsheetsFeed()
             spreadsheet_name = vpp_code.vpp_order.spreadsheet_name
@@ -200,8 +194,18 @@ class VppManager:
                     vpp_code.update_record(status='Pending')
                     return vpp_code
         return None
+    
+    # public interface    
+    # utility methods
+    def domain_user(self, user_email):
+        if user_email is not None and user_email != '':
+            if user_email.find('@') < 0:
+                user_email += '@'
+                user_email += self.settings.domain
+            return user_email
+        return None
         
-    # gdata public read opearations
+    # spreadsheet read opearations
     def get_vpp_spreadsheets(self, coll_name=None):
         gd_client = self._docs_client()
         if coll_name is None:
@@ -218,7 +222,7 @@ class VppManager:
         order_titles.sort(key=str.lower)
         return order_titles
 
-    def read_vpp_orders(self, spreadsheet_names):
+    def read_orders(self, spreadsheet_names):
         results = dict()
         if len(spreadsheet_names) > 0:
             ss_client = self._ss_client()
@@ -229,7 +233,7 @@ class VppManager:
                     raise HTTP(500)
                     results[spreadsheet_name] = dict()
                 else:
-                    results[spreadsheet_name] = self._read_vpp_data(ss_client, spreadsheet_name, order_key)
+                    results[spreadsheet_name] = self._read_order_data(ss_client, spreadsheet_name, order_key)
         return results
 
     def read_apps(self, spreadsheet_name=None):
@@ -250,7 +254,7 @@ class VppManager:
         db = self.db
         if spreadsheet_names is not None:
             for spreadsheet_name in spreadsheet_names:
-                db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name == spreadsheet_name, spreadsheet_name=spreadsheet_name)
+                db.vpp_order.update_or_insert(spreadsheet_name=spreadsheet_name)
         return db().select(db.vpp_order.ALL, orderby=db.vpp_order.spreadsheet_name_nocase)
 
     def select_apps(self, group=None):
@@ -291,7 +295,7 @@ class VppManager:
             owner_id = None
             user_email = self.domain_user(row['user'])
             if user_email is not None:
-                user = db(db.auth_user.email == user_email).select().first()
+                user = db(db.auth_user.email == user_email).select(limitby=(0,1)).first()
                 if user is not None:
                     owner_id = user.id
             db.device.insert(name=row['name'],
@@ -306,10 +310,85 @@ class VppManager:
         apps = self.read_apps()
         return self.update_apps(apps)
 
-    def populate_vpp_order_table(self):
+    def populate_order_table(self):
         spreadsheet_names = self.get_vpp_spreadsheets()
-        vpp_orders = self.read_vpp_orders(spreadsheet_names)
-        return self.update_vpp_orders(vpp_orders)
+        vpp_orders = self.read_orders(spreadsheet_names)
+        return self.update_orders(vpp_orders)
+
+    # database update operations
+    def update_orders(self, vpp_orders):
+        db = self.db
+        stats = dict(orders=0, redeemed=0, reserved=0, unused=0)
+        for spreadsheet_name in vpp_orders.iterkeys():
+            vpp_order = vpp_orders[spreadsheet_name]
+            order_number = vpp_order['order_number']
+            spreadsheet_name = vpp_order['spreadsheet_name']
+            product_name = vpp_order['product_name']
+            db.vpp_order.update_or_insert(db.vpp_order.order_number == order_number,
+                order_number=order_number,
+                spreadsheet_name=spreadsheet_name,
+                product_name=product_name)
+            db_order = db(db.vpp_order.order_number == order_number).select(limitby=(0,1)).first()
+            stats['orders'] += 1
+            for vpp_code in vpp_order['codes']:
+                device = None
+                owner = None
+                device_name = vpp_code.get('device_name')
+                user_email = self.domain_user(vpp_code.get('user_email'))
+                status = vpp_code.get('status')
+                if status is None:
+                    status = 'Unused'
+                    stats['unused'] += 1
+                else:
+                    status = status.capitalize()
+                    if status == 'Redeemed':
+                        stats['redeemed'] += 1
+                    else:
+                        status = 'Reserved'
+                        stats['reserved'] += 1         
+                    if user_email is None:
+                        user_email = self.settings.default_vpp_user
+                    db.auth_user.update_or_insert(email=user_email)
+                    owner = db(db.auth_user.email == user_email).select(limitby=(0,1)).first()
+                    if device_name is None:
+                        device_name = 'Unknown'
+                    db.device.update_or_insert(name=device_name)
+                    device = db(db.device.name == device_name).select(limitby=(0,1)).first()
+                code = vpp_code['code']
+                link = vpp_code['link']
+                db.vpp_code.update_or_insert(db.vpp_code.code == code,
+                    code=code, app_store_link=link, status=status,
+                    vpp_order=db_order.id,
+                    device=device.id,
+                    owner=owner.id)
+        return stats
+
+    def update_apps(self, apps):
+        db = self.db
+        stats = dict(free=0, vpp=0)
+        for app_store_id in apps.iterkeys():
+            app = apps[app_store_id]
+            name = app['name']
+            link = app['app_store_link']
+            price = app['price']
+            group_ids = [ ]
+            for group_name in app['groups']:
+                db.app_group.update_or_insert(name=group_name)
+                group = db(db.app_group.name == group_name).select(limitby=(0,1)).first()
+                if group is not None:
+                    group_ids.append(group.id)
+            db.app.update_or_insert(db.app.app_store_id == app_store_id,
+                name=name,
+                name_nocase=name.upper(),
+                app_store_id=app_store_id,
+                app_store_link=link,
+                groups=group_ids,
+                price=price)
+            if price == '0.00':
+                stats['free'] += 1
+            else:
+                stats['vpp'] += 1
+        return stats
 
     # email operations
     def queue_and_send_message(self, recipient, device, apps):
@@ -336,7 +415,7 @@ class VppManager:
 
         subject = 'Download instructions for iPad apps'
         body = "\n".join(body_lines)
-        
+
         db = self.db
         msg_id = db.invitation.insert(recipient=recipient,
             subject=subject,
@@ -344,87 +423,12 @@ class VppManager:
             apps=app_ids,
             vpp_codes=vpp_code_ids)
         print 'inserted invitation %s' % (msg_id)
-        
+
         if msg_id is not None and self.mailer is not None:
             success = self.mailer.send(to=[ recipient ], subject=subject, message=body)
-            timestamp = datetime.datetime.now()
+            timestamp = datetime.now()
             status = 'Sent'
             if not success:
                 status = 'Errors: %s' % (self.mailer.error)
             db.invitation(msg_id).update(last_sent_on=timestamp, last_status=status)
         return msg_id
-
-    # database update operations
-    def update_vpp_orders(self, vpp_orders):
-        db = self.db
-        stats = dict(orders=0, redeemed=0, reserved=0, unused=0)
-        for spreadsheet_name in vpp_orders.iterkeys():
-            vpp_order = vpp_orders[spreadsheet_name]
-            order_number = vpp_order['order_number']
-            spreadsheet_name = vpp_order['spreadsheet_name']
-            product_name = vpp_order['product_name']
-            order = db.vpp_order.update_or_insert(
-                db.vpp_order.order_number == order_number and db.vpp_order.product_name == product_name,
-                order_number=order_number,
-                spreadsheet_name=spreadsheet_name,
-                spreadsheet_name_nocase=spreadsheet_name.upper(),
-                product_name=product_name,
-                product_name_nocase=product_name.upper())
-            stats['orders'] += 1
-            for vpp_code in vpp_order['codes']:
-                device = None
-                owner = None
-                device_name = vpp_code.get('device_name')
-                user_email = self.domain_user(vpp_code.get('user_email'))
-                status = vpp_code.get('status')
-                if status is None:
-                    status = 'Unused'
-                    stats['unused'] += 1
-                else:
-                    status = status.capitalize()
-                    if status == 'Redeemed':
-                        stats['redeemed'] += 1
-                    else:
-                        status = 'Reserved'
-                        stats['reserved'] += 1         
-                    if user_email is None:
-                        user_email = self.settings.default_vpp_user
-                    owner = db.auth_user.update_or_insert(db.auth_user.email == user_email,
-                        email=user_email)
-                    if device_name is None:
-                        device_name = 'Unknown'
-                    device = db.device.update_or_insert(db.device.name == device_name,
-                        name=device_name)
-                code = vpp_code['code']
-                link = vpp_code['link']
-                db.vpp_code.update_or_insert(db.vpp_code.code == code,
-                    code=code, app_store_link=link, status=status,
-                    vpp_order=order,
-                    device=device,
-                    owner=owner)
-        return stats
-
-    def update_apps(self, apps):
-        db = self.db
-        stats = dict(free=0, vpp=0)
-        for app_store_id in apps.iterkeys():
-            app = apps[app_store_id]
-            name = app['name']
-            link = app['app_store_link']
-            price = app['price']
-            groups = [ ]
-            for group_name in app['groups']:
-                self.db.app_group.update_or_insert(name=group_name)
-                groups.append(self.db(self.db.app_group.name == group_name).select().first().id)
-            self.db.app.update_or_insert(self.db.app.app_store_id == app_store_id,
-                name=name,
-                name_nocase=name.upper(),
-                app_store_id=app_store_id,
-                app_store_link=link,
-                groups=groups,
-                price=price)
-            if price == '0.00':
-                stats['free'] += 1
-            else:
-                stats['vpp'] += 1
-        return stats
