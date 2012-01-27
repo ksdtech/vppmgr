@@ -140,23 +140,8 @@ class VppManager:
                     products[product_id]['groups'].append(groups[col-6])
         return products
     
-    def _update_vpp_cells_in_row(self, ss_key, ws_key, row, status, user_email, device_name):
-        e4 = ss_client.UpdateCell(row=row, col=4, inputValue=status, 
-            key=ss_key, wksht_id=ws_key)
-        if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
-            return False
-        e5 = ss_client.UpdateCell(row=row, col=5, inputValue=device_name, 
-            key=ss_key, wksht_id=ws_key)
-        if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
-            return False
-        e6 = ss_client.UpdateCell(row=row, col=6, inputValue=user_email, 
-            key=ss_key, wksht_id=ws_key)
-        if not isinstance(e4, gdata.spreadsheet.SpreadsheetsCell):
-            return False
-        return True
-    
     # gdata private update operations
-    def _update_vpp_code_in_spreadsheet(self, ss_client, ss_name, ss_key, code, status, user_email, device_name):
+    def _find_vpp_code_in_spreadsheet(self, ss_client, ss_name, ss_key, code):
         ss_ws_feed = ss_client.GetWorksheetsFeed(ss_key)
         ws_entry = ss_ws_feed.entry[0]
         ws_key = ws_entry.id.text.rsplit('/', 1)[1]
@@ -164,9 +149,9 @@ class VppManager:
         # print "worksheet id: %s, %s rows" % (ws_key, row_count)
         query = gdata.spreadsheet.service.CellQuery()
         query['min-row'] = '11'        
+        query['min-col'] = '1'        
+        query['max_col'] = '1'        
         cell_feed = ss_client.GetCellsFeed(ss_key, ws_key, query=query)
-        # print cell_feed.ToString()
-        success = False
         for i, entry in enumerate(cell_feed.entry):
             # Rows 11 - 11+n:
             #  Redemption Link: Column 3
@@ -175,22 +160,42 @@ class VppManager:
             #  Device Group: Column 6
             row = int(entry.cell.row)
             col = int(entry.cell.col)
-            if row >= 11 and col == 1:
-                found_code = entry.cell.text
-                if found_code == code:
-                    success = self._update_vpp_cells_in_row(ss_key, ws_key, row, status, user_email, device_name)
-                    break
-        return success
+            found_code = entry.cell.text
+            if found_code == code:
+                return (ws_key, row)
+        return (None, None)
         
+    def _update_vpp_cells_in_row(self, ss_client, ss_name, ss_key, ws_key, row, status, user_email, device_name):
+        print 'Updating row %d in %s: %s %s %s' % (row, ss_name, status, user_email, device_name)
+        c4 = ss_client.UpdateCell(row=row, col=4, inputValue=status, 
+            key=ss_key, wksht_id=ws_key)
+        if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
+            print 'failed on col 4'
+            return False
+        c5 = ss_client.UpdateCell(row=row, col=5, inputValue=device_name, 
+            key=ss_key, wksht_id=ws_key)
+        if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
+            print 'failed on col 5'
+            return False
+        c6 = ss_client.UpdateCell(row=row, col=6, inputValue=user_email, 
+            key=ss_key, wksht_id=ws_key)
+        if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
+            print 'failed on col 6'
+            return False
+        print 'succeeded'
+        return True
+
     def _next_pending_vpp_code(self, ss_client, product_id, user_email, device_name):
         db = self.db
-        vpp_code = db(db.vpp_code.status=='Unused' & db.vpp_order.id=db.vpp_code.vpp_order & db.vpp_order.product==product_id).select().first()
+        vpp_code = db((db.vpp_code.status=='Unused') & (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.product==product_id)).select(db.vpp_code.ALL).first()
         if vpp_code is not None:
             ss_feed = ss_client.GetSpreadsheetsFeed()
             ss_name = vpp_code.vpp_order.spreadsheet_name
             ss_key = self._find_spreadsheet(ss_feed, ss_name)
             if ss_key is not None:
-                if _update_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code, 'Pending', user_email, device_Name):
+                ws_key, row = self._find_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code)
+                if row is not None:
+                    success = self._update_vpp_cells_in_row(ss_client, ss_name, ss_key, ws_key, row, 'Pending', user_email, device_name)
                     vpp_code.update(status='Pending')
                     return vpp_code
         return None
@@ -308,18 +313,20 @@ class VppManager:
     # email operations
     def queue_and_send_message(self, recipient, device, products):
         ss_client = self._ss_client()
-        codes = [ ]
         body_lines = [ ]
         body_lines.append('Here are the links to your redemption codes and')
         body_lines.append('other download links for the apps you requested:')
 
+        product_ids = [ ] 
+        vpp_code_ids = [ ]
         for product in products:
+            product_ids.append(product.id)
             body_lines.append('')
             body_lines.append('%s:' % (product.name))
             vpp_code = self._next_pending_vpp_code(ss_client, product.id, recipient, device.name)
             if vpp_code is not None:
                 if vpp_code:
-                    codes.append(vpp_code.id)
+                    vpp_code_ids.append(vpp_code.id)
                     body_lines.append('VPP: %s' % (vpp_code.app_store_link))
                 else:
                     body_lines.append('$%s: %s' % (app.price, app.app_store_link))
@@ -333,8 +340,9 @@ class VppManager:
         msg_id = db.invitation.insert(recipient=recipient,
             subject=subject,
             body=body,
-            products=[p.id for p in products],
-            vpp_codes=codes)
+            products=product_ids,
+            vpp_codes=vpp_code_ids)
+            
         success = self.mailer.send(to=[ recipient ], subject=subject, message=body)
         timestamp = datetime.datetime.now()
         status = 'Sent'

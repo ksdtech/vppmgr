@@ -109,7 +109,7 @@ db.define_table('vpp_code',
 
 # Stored email messages
 db.define_table('invitation',
-    Field('recipient', db.auth_user,
+    Field('recipient', 'string',
         label=T('Recipient')),
     Field('subject', 'string',
         label=T('Subject')),
@@ -133,7 +133,7 @@ db.define_table('invitation',
     
 # Create our manager instance
 from vpp_manager import VppManager
-vpp_manager=VppManager(db, app_settings, settings.mailer)
+vpp_manager=VppManager(db, app_settings, mail)
 
 # Populate newly created database from vppusers.csv
 # and from Google spreadsheets
