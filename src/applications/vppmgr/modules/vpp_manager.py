@@ -14,8 +14,8 @@ class VppManager:
         self.mailer = mailer
 
     # private utilities
-    def _find_spreadsheet(self, ss_feed, name):
-        for entry in ss_feed.entry:
+    def _find_spreadsheet(self, order_feed, name):
+        for entry in order_feed.entry:
             # print entry.title.text
             if entry.title.text == name:
                 return entry.id.text.rsplit('/', 1)[1]
@@ -47,20 +47,20 @@ class VppManager:
         return None
     
     # gdata private read operations
-    def _read_vpp_data(self, ss_client, ss_name, ss_key):
+    def _read_vpp_data(self, ss_client, spreadsheet_name, order_key):
         vpp_order = dict()
-        vpp_order['spreadsheet_name'] = ss_name
+        vpp_order['spreadsheet_name'] = spreadsheet_name
         vpp_order['codes'] = [ ]
-        ss_ws_feed = ss_client.GetWorksheetsFeed(ss_key)
-        ws_entry = ss_ws_feed.entry[0]
-        ws_key = ws_entry.id.text.rsplit('/', 1)[1]
-        row_count = ws_entry.row_count.text
-        # print "worksheet id: %s, %s rows" % (ws_key, row_count)
-        cell_feed = ss_client.GetCellsFeed(ss_key, ws_key)
+        worksheet_feed = ss_client.GetWorksheetsFeed(order_key)
+        worksheet_entry = worksheet_feed.entry[0]
+        worksheet_key = worksheet_entry.id.text.rsplit('/', 1)[1]
+        row_count = worksheet_entry.row_count.text
+        # print "worksheet id: %s, %s rows" % (worksheet_key, row_count)
+        cell_feed = ss_client.GetCellsFeed(order_key, worksheet_key)
         # print cell_feed.ToString()
         for i, entry in enumerate(cell_feed.entry):
             # Order Number: Row 2, Column 3 
-            # Product Name: Row 3, Column 3
+            # app Name: Row 3, Column 3
             # Number of Codes: Row 5, Column 3
             # Rows 11 - 11+n:
             #  Redemption Link: Column 3
@@ -89,21 +89,21 @@ class VppManager:
                     vpp_order['codes'][row-11]['user_email'] = entry.cell.text
         return vpp_order
 
-    def _read_product_data(self, gd_client, ss_name, ss_key):
-        products = dict()
-        ss_ws_feed = gd_client.GetWorksheetsFeed(ss_key)
-        ws_entry = ss_ws_feed.entry[0]
-        ws_key = ws_entry.id.text.rsplit('/', 1)[1]
-        row_count = ws_entry.row_count.text
-        # print "worksheet id: %s, %s rows" % (ws_key, row_count)
+    def _read_app_data(self, gd_client, spreadsheet_name, order_key):
+        apps = dict()
+        worksheet_feed = gd_client.GetWorksheetsFeed(order_key)
+        worksheet_entry = worksheet_feed.entry[0]
+        worksheet_key = worksheet_entry.id.text.rsplit('/', 1)[1]
+        row_count = worksheet_entry.row_count.text
+        # print "worksheet id: %s, %s rows" % (worksheet_key, row_count)
         query = gdata.spreadsheet.service.CellQuery()
         query['min-col'] = '1'
         query['max-col'] = '12'
-        cell_feed = gd_client.GetCellsFeed(ss_key, ws_key, query=query)
+        cell_feed = gd_client.GetCellsFeed(order_key, worksheet_key, query=query)
         name = None
         link = None
         price = None
-        product_id = None
+        app_id = None
         groups = [ 'Group %d' % (i+1) for i in range(7) ]
         for i, entry in enumerate(cell_feed.entry):
             row = int(entry.cell.row)
@@ -113,15 +113,15 @@ class VppManager:
                 # Header Row, group names
                 groups[col-6] = entry.cell.text
             elif row >= 3:
-                # Product Rows, 3 to n
-                # Product Name: Column 1
+                # app Rows, 3 to n
+                # app Name: Column 1
                 # App Store Link: Column 2
                 # List Price: Column 3
                 if col == 1:
                     name = entry.cell.text
                     link = None
                     price = None
-                    product_id = None
+                    app_id = None
                 elif col == 2:
                     link = entry.cell.text
                 elif col == 3:
@@ -130,29 +130,29 @@ class VppManager:
                         price = '0.00'
                     m = re.search(r'\/id(\d+)\?', link) # extract id number
                     if m is not None:
-                        product_id = m.group(1)
-                        products[product_id] = dict()
-                        products[product_id]['app_store_id'] = product_id
-                        products[product_id]['app_store_link'] = link
-                        products[product_id]['name'] = name
-                        products[product_id]['price'] = price
-                        products[product_id]['groups'] = [ ]
-                elif product_id is not None and col >= 6 and col <= 12 and len(entry.cell.text) > 0:
-                    products[product_id]['groups'].append(groups[col-6])
-        return products
+                        app_id = m.group(1)
+                        apps[app_id] = dict()
+                        apps[app_id]['app_store_id'] = app_id
+                        apps[app_id]['app_store_link'] = link
+                        apps[app_id]['name'] = name
+                        apps[app_id]['price'] = price
+                        apps[app_id]['groups'] = [ ]
+                elif app_id is not None and col >= 6 and col <= 12 and len(entry.cell.text) > 0:
+                    apps[app_id]['groups'].append(groups[col-6])
+        return apps
     
     # gdata private update operations
-    def _find_vpp_code_in_spreadsheet(self, ss_client, ss_name, ss_key, code):
-        ss_ws_feed = ss_client.GetWorksheetsFeed(ss_key)
-        ws_entry = ss_ws_feed.entry[0]
-        ws_key = ws_entry.id.text.rsplit('/', 1)[1]
-        row_count = ws_entry.row_count.text
-        # print "worksheet id: %s, %s rows" % (ws_key, row_count)
+    def _find_vpp_code_in_spreadsheet(self, ss_client, spreadsheet_name, order_key, code):
+        worksheet_feed = ss_client.GetWorksheetsFeed(order_key)
+        worksheet_entry = worksheet_feed.entry[0]
+        worksheet_key = worksheet_entry.id.text.rsplit('/', 1)[1]
+        row_count = worksheet_entry.row_count.text
+        # print "worksheet id: %s, %s rows" % (worksheet_key, row_count)
         query = gdata.spreadsheet.service.CellQuery()
         query['min-row'] = '11'        
         query['min-col'] = '1'        
         query['max_col'] = '1'        
-        cell_feed = ss_client.GetCellsFeed(ss_key, ws_key, query=query)
+        cell_feed = ss_client.GetCellsFeed(order_key, worksheet_key, query=query)
         for i, entry in enumerate(cell_feed.entry):
             # Rows 11 - 11+n:
             #  Redemption Link: Column 3
@@ -163,40 +163,40 @@ class VppManager:
             col = int(entry.cell.col)
             found_code = entry.cell.text
             if found_code == code:
-                return (ws_key, row)
+                return (worksheet_key, row)
         return (None, None)
         
-    def _update_vpp_cells_in_row(self, ss_client, ss_name, ss_key, ws_key, row, status, user_email, device_name):
-        print 'Updating row %d in %s: %s %s %s' % (row, ss_name, status, user_email, device_name)
+    def _update_vpp_cells_in_row(self, ss_client, spreadsheet_name, order_key, worksheet_key, row, status, user_email, device_name):
+        print 'Updating row %d in %s: %s %s %s' % (row, spreadsheet_name, status, user_email, device_name)
         c4 = ss_client.UpdateCell(row=row, col=4, inputValue=status, 
-            key=ss_key, wksht_id=ws_key)
+            key=order_key, wksht_id=worksheet_key)
         if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
             print 'failed on col 4'
             return False
         c5 = ss_client.UpdateCell(row=row, col=5, inputValue=device_name, 
-            key=ss_key, wksht_id=ws_key)
+            key=order_key, wksht_id=worksheet_key)
         if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
             print 'failed on col 5'
             return False
         c6 = ss_client.UpdateCell(row=row, col=6, inputValue=user_email, 
-            key=ss_key, wksht_id=ws_key)
+            key=order_key, wksht_id=worksheet_key)
         if not isinstance(c4, gdata.spreadsheet.SpreadsheetsCell):
             print 'failed on col 6'
             return False
         print 'succeeded'
         return True
 
-    def _next_pending_vpp_code(self, ss_client, product_id, user_email, device_name):
+    def _next_pending_vpp_code(self, ss_client, app_id, user_email, device_name):
         db = self.db
-        vpp_code = db((db.vpp_code.status=='Unused') & (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.product==product_id)).select(db.vpp_code.ALL).first()
+        vpp_code = db((db.vpp_code.status=='Unused') & (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id)).select(db.vpp_code.ALL).first()
         if vpp_code is not None:
-            ss_feed = ss_client.GetSpreadsheetsFeed()
-            ss_name = vpp_code.vpp_order.spreadsheet_name
-            ss_key = self._find_spreadsheet(ss_feed, ss_name)
-            if ss_key is not None:
-                ws_key, row = self._find_vpp_code_in_spreadsheet(ss_client, ss_name, ss_key, vpp_code.code)
+            order_feed = ss_client.GetSpreadsheetsFeed()
+            spreadsheet_name = vpp_code.vpp_order.spreadsheet_name
+            order_key = self._find_spreadsheet(order_feed, spreadsheet_name)
+            if order_key is not None:
+                worksheet_key, row = self._find_vpp_code_in_spreadsheet(ss_client, spreadsheet_name, order_key, vpp_code.code)
                 if row is not None:
-                    success = self._update_vpp_cells_in_row(ss_client, ss_name, ss_key, ws_key, row, 'Pending', user_email, device_name)
+                    success = self._update_vpp_cells_in_row(ss_client, spreadsheet_name, order_key, worksheet_key, row, 'Pending', user_email, device_name)
                     vpp_code.update_record(status='Pending')
                     return vpp_code
         return None
@@ -209,62 +209,62 @@ class VppManager:
         folder_feed = gd_client.GetDocList(uri='/feeds/default/private/full/-/folder?title=%s&title-exact=true&max-results=1' % (quote_plus(coll_name)))
         folder = folder_feed.entry[0]
         res_id = folder.resource_id.text
-        ss_feed = gd_client.GetDocList(uri='/feeds/default/private/full/%s/contents/-/spreadsheet?showfolders=false' % (res_id))
-        ss_titles = [ ]
-        for ss_entry in ss_feed.entry:
-            title = ss_entry.title.text
+        order_feed = gd_client.GetDocList(uri='/feeds/default/private/full/%s/contents/-/spreadsheet?showfolders=false' % (res_id))
+        order_titles = [ ]
+        for order_entry in order_feed.entry:
+            title = order_entry.title.text
             if title[0] != '_':
-                ss_titles.append(title)
-        ss_titles.sort(key=str.lower)
-        return ss_titles
+                order_titles.append(title)
+        order_titles.sort(key=str.lower)
+        return order_titles
 
-    def read_vpp_orders(self, ss_names):
+    def read_vpp_orders(self, spreadsheet_names):
         results = dict()
-        if len(ss_names) > 0:
+        if len(spreadsheet_names) > 0:
             ss_client = self._ss_client()
-            ss_feed = ss_client.GetSpreadsheetsFeed()
-            for ss_name in ss_names:
-                ss_key = self._find_spreadsheet(ss_feed, ss_name)
-                if ss_key is None:
+            order_feed = ss_client.GetSpreadsheetsFeed()
+            for spreadsheet_name in spreadsheet_names:
+                order_key = self._find_spreadsheet(order_feed, spreadsheet_name)
+                if order_key is None:
                     raise HTTP(500)
-                    results[ss_name] = dict()
+                    results[spreadsheet_name] = dict()
                 else:
-                    results[ss_name] = self._read_vpp_data(ss_client, ss_name, ss_key)
+                    results[spreadsheet_name] = self._read_vpp_data(ss_client, spreadsheet_name, order_key)
         return results
 
-    def read_products(self, ss_name=None):
+    def read_apps(self, spreadsheet_name=None):
         results = dict()
         ss_client = self._ss_client()
-        ss_feed = ss_client.GetSpreadsheetsFeed()
-        if ss_name is None:
-            ss_name = self.settings.product_ss_name
-        ss_key = self._find_spreadsheet(ss_feed, ss_name)
-        if ss_key is None:
+        order_feed = ss_client.GetSpreadsheetsFeed()
+        if spreadsheet_name is None:
+            spreadsheet_name = self.settings.app_spreadsheet_name
+        order_key = self._find_spreadsheet(order_feed, spreadsheet_name)
+        if order_key is None:
             raise HTTP(500)
         else:
-            results = self._read_product_data(ss_client, ss_name, ss_key)
+            results = self._read_app_data(ss_client, spreadsheet_name, order_key)
         return results    
 
     # database select operations
-    def select_spreadsheets(self, ss_names=None):
+    def select_orders(self, spreadsheet_names=None):
         db = self.db
-        if ss_names is not None:
-            for ss_name in ss_names:
-                db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name == ss_name, spreadsheet_name=ss_name)
+        if spreadsheet_names is not None:
+            for spreadsheet_name in spreadsheet_names:
+                db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name == spreadsheet_name, spreadsheet_name=spreadsheet_name)
         return db().select(db.vpp_order.ALL, orderby=db.vpp_order.spreadsheet_name_nocase)
 
     def select_apps(self, group=None):
         db = self.db
         scope = None
         if group is not None:
-            scope = db(db.product.groups.contains(group))
+            scope = db(db.app.groups.contains(group))
         else:
             scope = db()
-        return scope.select(db.product.ALL, orderby=db.product.name_nocase)
+        return scope.select(db.app.ALL, orderby=db.app.name_nocase)
 
     def select_groups(self):
         db = self.db
-        return db().select(db.product_group.ALL, orderby=db.product_group.name)
+        return db().select(db.app_group.ALL, orderby=db.app_group.name)
 
     def select_devices(self):
         db = self.db
@@ -302,29 +302,29 @@ class VppManager:
                 room=row['room'],
                 owner=owner_id)
     
-    def populate_product_table(self):             
-        products = self.read_products()
-        return self.update_products(products)
+    def populate_app_table(self):             
+        apps = self.read_apps()
+        return self.update_apps(apps)
 
     def populate_vpp_order_table(self):
-        ss_names = self.get_vpp_spreadsheets()
-        vpp_orders = self.read_vpp_orders(ss_names)
+        spreadsheet_names = self.get_vpp_spreadsheets()
+        vpp_orders = self.read_vpp_orders(spreadsheet_names)
         return self.update_vpp_orders(vpp_orders)
 
     # email operations
-    def queue_and_send_message(self, recipient, device, products):
+    def queue_and_send_message(self, recipient, device, apps):
         ss_client = self._ss_client()
         body_lines = [ ]
         body_lines.append('Here are the links to your redemption codes and')
         body_lines.append('other download links for the apps you requested:')
 
-        product_ids = [ ] 
+        app_ids = [ ] 
         vpp_code_ids = [ ]
-        for product in products:
-            product_ids.append(product.id)
+        for app in apps:
+            app_ids.append(app.id)
             body_lines.append('')
-            body_lines.append('%s:' % (product.name))
-            vpp_code = self._next_pending_vpp_code(ss_client, product.id, recipient, device.name)
+            body_lines.append('%s:' % (app.name))
+            vpp_code = self._next_pending_vpp_code(ss_client, app.id, recipient, device.name)
             if vpp_code is not None:
                 if vpp_code:
                     vpp_code_ids.append(vpp_code.id)
@@ -341,7 +341,7 @@ class VppManager:
         msg_id = db.invitation.insert(recipient=recipient,
             subject=subject,
             body=body,
-            products=product_ids,
+            apps=app_ids,
             vpp_codes=vpp_code_ids)
         print 'inserted invitation %s' % (msg_id)
         
@@ -358,8 +358,8 @@ class VppManager:
     def update_vpp_orders(self, vpp_orders):
         db = self.db
         stats = dict(orders=0, redeemed=0, reserved=0, unused=0)
-        for ss_name in vpp_orders.iterkeys():
-            vpp_order = vpp_orders[ss_name]
+        for spreadsheet_name in vpp_orders.iterkeys():
+            vpp_order = vpp_orders[spreadsheet_name]
             order_number = vpp_order['order_number']
             spreadsheet_name = vpp_order['spreadsheet_name']
             product_name = vpp_order['product_name']
@@ -404,19 +404,19 @@ class VppManager:
                     owner=owner)
         return stats
 
-    def update_products(self, products):
+    def update_apps(self, apps):
         db = self.db
         stats = dict(free=0, vpp=0)
-        for app_store_id in products.iterkeys():
-            app = products[app_store_id]
+        for app_store_id in apps.iterkeys():
+            app = apps[app_store_id]
             name = app['name']
             link = app['app_store_link']
             price = app['price']
             groups = [ ]
             for group_name in app['groups']:
-                self.db.product_group.update_or_insert(name=group_name)
-                groups.append(self.db(self.db.product_group.name == group_name).select().first().id)
-            self.db.product.update_or_insert(self.db.product.app_store_id == app_store_id,
+                self.db.app_group.update_or_insert(name=group_name)
+                groups.append(self.db(self.db.app_group.name == group_name).select().first().id)
+            self.db.app.update_or_insert(self.db.app.app_store_id == app_store_id,
                 name=name,
                 name_nocase=name.upper(),
                 app_store_id=app_store_id,

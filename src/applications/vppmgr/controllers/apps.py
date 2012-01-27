@@ -29,7 +29,7 @@ def index():
         if len(errors) > 0:
             response.flash = "\n".join(errors)
         else:
-            apps = db(db.product.id.belongs(app_ids)).select()
+            apps = db(db.app.id.belongs(app_ids)).select()
             success = vpp_manager.queue_and_send_message(user_email, device, apps)
             if success:
                 response.flash = "Message sent"
@@ -49,6 +49,6 @@ def index():
     return dict(apps=app_rows, devices=device_rows, groups=group_rows, group=group_id, group_name=group_name)
 
 def import_all():
-    updates = vpp_manager.populate_product_table()
+    updates = vpp_manager.populate_app_table()
     request.flash = "Updated %d free and %d vpp apps" % (updates['free'], updates['vpp'])
     redirect('index')

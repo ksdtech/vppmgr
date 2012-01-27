@@ -15,7 +15,7 @@
 ## >>> for row in rows: print row.id, row.myfield
 #########################################################################
 
-db.define_table('product_group',
+db.define_table('app_group',
     Field('name', 'string',
         label=T('Name')),
     format='%(name)s',
@@ -23,7 +23,7 @@ db.define_table('product_group',
 
 # See http://web2py.com/books/default/chapter/29/6 on list:reference usage
 # app
-db.define_table('product',
+db.define_table('app',
     Field('name', 'string',
         label=T('Name')),
     Field('name_nocase', 'string',
@@ -34,7 +34,7 @@ db.define_table('product',
         label=T('AppStore Link')),
     Field('price', 'string',
         label=T('Price')),
-    Field('groups', 'list:reference product_group'),
+    Field('groups', 'list:reference app_group'),
     Field('created_on', 'datetime', default=request.now,
         label=T('Created On'), writable=False, readable=False),
     Field('modified_on', 'datetime', default=request.now,
@@ -73,12 +73,12 @@ db.define_table('vpp_order',
     Field('spreadsheet_name', 'string',
         label=T('Spreadsheet Name')),
     Field('spreadsheet_name_nocase', 'string',
-        label=T('SS Nocase')),
+        label=T('Spreadsheet Nocase')),
     Field('product_name', 'string',
         label=T('Product Name')),
     Field('product_name_nocase', 'string',
         label=T('Product Nocase')),
-    Field('product', db.product),
+    Field('app', db.app),
     Field('created_on', 'datetime', default=request.now,
         label=T('Created On'), writable=False, readable=False),
     Field('modified_on', 'datetime', default=request.now,
@@ -115,8 +115,8 @@ db.define_table('invitation',
         label=T('Subject')),
     Field('body', 'text',
         label=T('Body')),
-    Field('products', 'list:reference product',
-        label=T('Products')),
+    Field('apps', 'list:reference app',
+        label=T('apps')),
     Field('vpp_codes', 'list:reference vpp_code',
         label=T('VPP Codes')),
     Field('last_sent_on', 'datetime',
@@ -144,8 +144,8 @@ if db(db.auth_user).isempty():
 if db(db.device).isempty():
     vpp_manager.populate_device_table()
 
-if db(db.product).isempty():
-    vpp_manager.populate_product_table()
+if db(db.app).isempty():
+    vpp_manager.populate_app_table()
 
 if db(db.vpp_order).isempty():
     vpp_manager.populate_vpp_order_table()

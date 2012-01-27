@@ -19,7 +19,7 @@ app_settings.email_sender = 'username@gmail.com'
 app_settings.email_login = 'username@gmail.com:password'
 
 # This is the Google Spreadsheet that contains the list of apps we manage:
-app_settings.product_ss_name = '_iOS Applications'
+app_settings.app_spreadsheet_name = '_iOS Applications'
 
 # This is the Google Docs collection name that the VPP spreadsheets
 # from Apple are loaded into:
