@@ -16,3 +16,13 @@ app_settings.email_login = 'username@gmail.com:password'
 app_settings.database_uri = 'sqlite://vpp.sqlite'
 app_settings.vpp_coll_name = 'iOS+VPP+Codes'
 app_settings.default_vpp_user = 'username@example.com'
+app_settings.populate_folder = '/Users/user/project/src/applications/vppmgr/private/'
+
+Also requires the presence of two csv files in the populate_folder
+to populate the auth_user and device tables
+
+Required header line for auth_user.csv file:
+first_name,last_name,email,password
+
+Required header line for device.csv file:
+name,asset_number,serial_number,apple_device_id,location,room,user
