@@ -1,18 +1,28 @@
 # view helpers
+import difflib
 
 def nearest_app_match(apps, spreadsheet_name):
+    app_id = None
     if len(apps) > 0:
-        hi = 0
-        product_name = None
-        prev_name = None
-        for i, app in enumerate(apps):
-            product_name = app.name_nocase
-            if prev_name is not None and spreadsheet_name >= prev_name and spreadsheet_name < product_name:
-                return apps[i-1].id
-            prev_name = product_name
-            hi = i
-        return apps[hi].id
-    return None
+        name = spreadsheet_name
+        l = len(spreadsheet_name)
+        if l > 20:
+            # truncate at '- ' or '(')
+            t = spreadsheet_name.find('- ')
+            x = spreadsheet_name.find('(')
+            if x > 0 and (t < 0 or x < t):
+                t = x
+            if t > 0:
+                l = t
+                name = spreadsheet_name[0:l]
+        app_names = [app.name_nocase[0:l] for app in apps]
+        app_name_matches = difflib.get_close_matches(name, app_names, 1)
+        if len(app_name_matches) > 0:
+            app_name = app_name_matches[0]
+            app_id = [app.id for app in apps if app.name_nocase[0:l]==app_name][0]
+        else:
+            print "no close match for %s (%s)" % (spreadsheet_name, name)
+    return app_id
 
 def spreadsheet_import_link(spreadsheets, i):
     return '<a href="import_one/%d">Import %s</a>' % (spreadsheets[i].id, spreadsheets[i].spreadsheet_name)
@@ -23,6 +33,7 @@ def spreadsheet_app_select(spreadsheets, i, apps):
     if selected_app is None:
         selected_app = nearest_app_match(apps, spreadsheets[i].spreadsheet_name_nocase)
     s = '<select name="%s" id="%s">' % (select_id, select_id)
+    s += '<option value="">--Select the matching app</option>'
     for app in apps:
         s += '<option value="%s"' % (app.id)
         if selected_app == app.id:
