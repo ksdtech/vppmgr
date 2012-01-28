@@ -31,7 +31,7 @@ def upcase_field(r, other_field):
 # app
 db.define_table('app',
     Field('name', 'string',
-        label=T('Name')),
+        label=T('Name'), unique=True),
     Field('name_nocase', 'string',
         label=T('Name Nocase'), compute=lambda r: upcase_field(r, 'name')),
     Field('app_store_id', 'string',
@@ -46,7 +46,7 @@ db.define_table('app',
     Field('modified_on', 'datetime', default=request.now,
         label=T('Modified On'), writable=False, readable=False,
         update=request.now),
-    format='%(name)s %(id)s',
+    format='%(name)s',
     migrate=settings.migrate)
     
 # iOS device
@@ -69,7 +69,7 @@ db.define_table('device',
     Field('modified_on', 'datetime', default=request.now,
         label=T('Modified On'), writable=False, readable=False,
         update=request.now),
-    format='%(name)s %(id)s',
+    format='%(name)s',
     migrate=settings.migrate)
     
 # VPP order

@@ -1,44 +1,17 @@
 {{extend 'layout.html'}}
 
-{{if group is not None:}}
-<h1>Assign Apps Filtered by Group '{{=group_name}}'</h1>
-{{else:}}
-<h1>Assign Apps</h1>
-{{pass}}
-
-<p>Instructions: Enter users to provide app vpp codes and free app links to,
-	then check off the apps to be provisioned; 
-	or click the <strong>Import All</strong> link to import
-	all app information from the master Google Spreadsheet.<br/>
-	To show only the apps for a particular group, click the link with
-	the group name.<br/>
-{{for i, g in enumerate(groups):}}
-	<a href="/vppmgr/apps/index?group={{=g.id}}">{{=g.name}}</a><br/>
-{{pass}}
-	<a href="/vppmgr/apps/import_all">Import All</a></p>
-<form method="POST">
-	<table>
-		<tr><td>User - Type usernames or email address</td></tr>
-		<tr>
-			<td><input type="text" name="user_email" id="user_email" size="80" /></td>
-		</tr>
-		<tr>
-			<td><select name="device" id="device">
-				<option value="">Select the device</option>
-{{for d in devices:}}
-				<option value="{{=d.id}}">{{=d.name}}</option>
-{{pass}}
-				</select></td>
-		</tr>
-		<tr><td><input type="checkbox" class="appcheck" name="check_all" onclick="jQuery('.appcheck').attr('checked', 'checked')" />&nbsp;Check All</td></tr>
-		<tr><td><input type="checkbox" class="appcheck" name="check_none" onclick="jQuery('.appcheck').removeAttr('checked');" />&nbsp;Check None</td></tr>
-		<tr><td>Apps - Check box next to app names</td></tr>
+<p>Instructions: Click <strong>Show</strong> for information on 
+  one of these apps, or click <a href="{{=URL('import_all')}}">Import All</a>
+  to import all apps from the master Google Spreadsheet.</p>
+<table>
+  <tr><td>Show</td><td>Import</td><td>App Name</td><td>Price</td></tr>
 {{for i, ss in enumerate(apps):}}
 		<tr class="{{='odd' if i%2 else 'even'}}">
-			<td><input type="checkbox" class="appcheck" name="{{='app_%d' % apps[i].id}}" value="1" />&nbsp;{{=apps[i].name}}, {{=apps[i].price}}</td>
+			<td><a href="{{=URL(f='show', args=[apps[i].id])}}">Show</td>
+			<td><a href="{{=URL(f='import_one', args=[apps[i].id])}}">Import</td>
+			<td>{{=apps[i].name}}</td>
+			<td>${{=apps[i].price}}</td>
 		</tr>
 {{pass}}
-	</table>
-	<input type="submit" name="submit" value="Submit" />
-</form>
-<p><a href="/vppmgr/apps/import_all">Import All</a></p>
+</table>
+<p><a href="{{=URL('import_all')}}">Import All</a></p>

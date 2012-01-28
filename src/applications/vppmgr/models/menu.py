@@ -5,6 +5,11 @@ response.meta.keywords = settings.keywords
 response.meta.description = settings.description
 response.menu = [
     (T('Home'),         URL('default','index')==URL(),      URL('default','index'), []),
+    (T('Apps'), URL('apps','index')==URL(), URL('apps','index'), [
+        (T('List'),        URL('apps','index')==URL(),       URL('apps','index'), []),
+        (T('Import All'),  URL('apps','import_all')==URL(),  URL('apps','import_all'), []),
+        (T('Provision'),   URL('apps','provision')==URL(),   URL('apps','assign_apps'), []),
+    ]),
     (T('Spreadsheets'), URL('spreadsheets','index')==URL(), URL('spreadsheets','index'), [
         (T('List'),        URL('spreadsheets','index')==URL(),       URL('spreadsheets','index'), []),
         (T('Import All'),  URL('spreadsheets','import_all')==URL(),  URL('spreadsheets','import_all'), []),

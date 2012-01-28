@@ -1,7 +1,21 @@
 # -*- coding: utf-8 -*-
 import re
 
+def _find_app():
+    app = db.app(request.args(0))
+    if app is None:
+         raise HTTP(404)
+    return app
+
 def index():
+    app_rows = vpp_manager.select_apps()
+    return dict(apps=app_rows)
+
+def show():
+    app = _find_app()
+    return dict(form=SQLFORM(db.app, app, readonly=True))
+
+def provision():
     if request.env.request_method == 'POST': # postback
         errors = []
         user_email = vpp_manager.domain_user(request.post_vars['user_email'])
@@ -48,7 +62,13 @@ def index():
             group_id = None
     return dict(apps=app_rows, devices=device_rows, groups=group_rows, group=group_id, group_name=group_name)
 
+def import_one():
+    app = _find_app()
+    updates = vpp_manager.update_apps([app])
+    session.flash = "Updated %d free and %d vpp apps" % (updates['free'], updates['vpp'])
+    redirect(URL('index'))
+
 def import_all():
     updates = vpp_manager.populate_app_table()
-    request.flash = "Updated %d free and %d vpp apps" % (updates['free'], updates['vpp'])
-    redirect('index')
+    session.flash = "Updated %d free and %d vpp apps" % (updates['free'], updates['vpp'])
+    redirect(URL('index'))

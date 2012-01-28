@@ -1,0 +1,41 @@
+{{extend 'layout.html'}}
+
+{{if group is not None:}}
+<h3>Provision Apps Filtered by Group '{{=group_name}}'</h3>
+{{else:}}
+<h3>Provision Apps</h3>
+{{pass}}
+
+<p>Instructions: Enter the user for whom
+  app codes and download links will be provisioned,
+	then check off the apps to be provisioned.<br/>
+	To show only the apps for a particular group, click the link with
+	the group name.<br/>
+{{for i, g in enumerate(groups):}}
+	<a href="/vppmgr/apps/index?group={{=g.id}}">{{=g.name}}</a><br/>
+{{pass}}
+<form method="POST">
+	<table>
+		<tr><td>User - Type usernames or email address</td></tr>
+		<tr>
+			<td><input type="text" name="user_email" id="user_email" size="80" /></td>
+		</tr>
+		<tr>
+			<td><select name="device" id="device">
+				<option value="">Select the device</option>
+{{for d in devices:}}
+				<option value="{{=d.id}}">{{=d.name}}</option>
+{{pass}}
+				</select></td>
+		</tr>
+		<tr><td><input type="checkbox" class="appcheck" name="check_all" onclick="jQuery('.appcheck').attr('checked', 'checked')" />&nbsp;Check All</td></tr>
+		<tr><td><input type="checkbox" class="appcheck" name="check_none" onclick="jQuery('.appcheck').removeAttr('checked');" />&nbsp;Check None</td></tr>
+		<tr><td>Apps - Check box next to app names</td></tr>
+{{for i, ss in enumerate(apps):}}
+		<tr class="{{='odd' if i%2 else 'even'}}">
+			<td><input type="checkbox" class="appcheck" name="{{='app_%d' % apps[i].id}}" value="1" />&nbsp;{{=apps[i].name}}, {{=apps[i].price}}</td>
+		</tr>
+{{pass}}
+	</table>
+	<input type="submit" name="submit" value="Submit" />
+</form>
