@@ -1,7 +1,15 @@
 {{extend 'layout.html'}}
 
-<h1>Apple VPP Code Manager</h1>
-<p>
-	<a href="/vppmgr/appadmin">Database Administration</a><br/>
-	<a href="/vppmgr/apps">Show List of Apps</a><br/>
-	<a href="/vppmgr/spreadsheets">Show List of Spreadsheets</a></p>
+<h4>Apple VPP Code Manager - Primary Functions</h4>
+<p>Tip: If you have changed the master spreadsheet of apps or
+  have not assigned apps from the master spreadsheet, click the
+  <strong>Assign apps to spreadsheets</strong> link before doing 
+  anything else.</p>
+<ol>
+	<li><a href="{{=URL(c='apps', f='index')}}">Show list of apps in system</a></li>
+	<li><a href="{{=URL(c='spreadsheets', f='index')}}">Show list of spreadsheets in system</a></li>
+	<li><a href="{{=URL(c='spreadsheets', f='assign_apps')}}">Assign apps to spreadsheets</a></li>
+	<li><a href="{{=URL(c='apps', f='provision')}}">Provision a selection of apps by invitation</a></li>
+	<li><a href="{{=URL(c='invitations', f='index')}}">Show list of invitations</a></li>
+	<li><a href="{{=URL(c='appadmin', f='index')}}">Database administration</a></li>
+</ol>

@@ -18,4 +18,5 @@ response.menu = [
     ]),
     (T('Invitations'),  URL('invitations','index')==URL(),  URL('invitations','index'), [
         (T('List'),        URL('invitations','index')==URL(),        URL('invitations','index'), []),
+    ]),
 ]

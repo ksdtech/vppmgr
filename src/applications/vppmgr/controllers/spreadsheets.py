@@ -33,7 +33,7 @@ def show():
                 tbody[0].append(no_user_rows)
             else:
                 code_table = no_user_code_table    
-    return dict(form=form, code_table=code_table)
+    return dict(vpp_order=vpp_order, form=form, code_table=code_table)
 
 def assign_apps():
     if request.env.request_method == 'POST': # postback

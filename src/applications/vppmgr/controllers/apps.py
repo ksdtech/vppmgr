@@ -26,7 +26,7 @@ def index():
 
 def show():
     app = _find_app()
-    return dict(form=SQLFORM(db.app, app, readonly=True))
+    return dict(app=app, form=SQLFORM(db.app, app, readonly=True))
 
 def provision():
     if request.env.request_method == 'POST': # postback
