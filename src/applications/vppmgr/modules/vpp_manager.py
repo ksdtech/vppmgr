@@ -250,9 +250,10 @@ class VppManager:
         return results    
 
     # database select operations
-    def select_orders(self, spreadsheet_names=None):
+    def select_orders(self, update_list=False):
         db = self.db
-        if spreadsheet_names is not None:
+        if update_list:
+            spreadsheet_names = self.get_vpp_spreadsheets()
             for spreadsheet_name in spreadsheet_names:
                 db.vpp_order.update_or_insert(spreadsheet_name=spreadsheet_name)
         return db().select(db.vpp_order.ALL, orderby=db.vpp_order.spreadsheet_name_nocase)

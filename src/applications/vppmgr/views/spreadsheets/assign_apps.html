@@ -1,0 +1,25 @@
+{{extend 'layout.html'}}
+{{from spreadsheets_helper import spreadsheet_app_select}}
+
+<style>
+	.even { background-color: #FFC; }
+</style>
+
+<p>Instructions: 
+	Assign an app registered in the database to each spreadsheet
+	and click <strong>Submit</strong>, or click the <strong>Clear Apps</strong> link
+	to reset all spreadsheets to the closest matching app name.<br/>
+	<a href="/vppmgr/spreadsheets/clear_apps">Clear Apps<a/></p>
+<form method="POST">
+	<table>
+	<tr><td>Spreadsheet</td><td>Assigned App</td></tr>
+{{for i, ss in enumerate(spreadsheets):}}
+	<tr class="{{='odd' if i%2 else 'even'}}">
+		<td>{{=spreadsheets[i].spreadsheet_name}}</td>
+		<td>{{=XML(spreadsheet_app_select(spreadsheets, i, apps))}}</td>
+	</tr>
+{{pass}}
+	</table>
+	<input type="submit" name="submit" value="Submit" />
+</form>
+<p><a href="/vppmgr/spreadsheets/clear_apps">Clear Apps<a/></p>

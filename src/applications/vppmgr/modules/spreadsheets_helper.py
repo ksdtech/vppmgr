@@ -1,4 +1,5 @@
 # view helpers
+import cgi
 import difflib
 
 def nearest_app_match(apps, spreadsheet_name):
@@ -24,9 +25,6 @@ def nearest_app_match(apps, spreadsheet_name):
             print "no close match for %s (%s)" % (spreadsheet_name, name)
     return app_id
 
-def spreadsheet_import_link(spreadsheets, i):
-    return '<a href="import_one/%d">Import %s</a>' % (spreadsheets[i].id, spreadsheets[i].spreadsheet_name)
-    
 def spreadsheet_app_select(spreadsheets, i, apps):
     select_id = 'order_%d' % (spreadsheets[i].id)
     selected_app = spreadsheets[i].app
@@ -41,3 +39,13 @@ def spreadsheet_app_select(spreadsheets, i, apps):
         s += " />%s</option>" % (app.name)
     s += '</select>'
     return s
+    
+def spreadsheet_show_import_row(spreadsheets, i):
+    order_id = spreadsheets[i].id
+    app_name = 'Unknown'
+    app = spreadsheets[i].app
+    if app is not None:
+        app_name = app.name
+    fmt = '<td><a href="show/%d">Show</a></td><td><a href="import_one/%d">Import</a></td>'
+    fmt += '<td>%s</td><td>%s</td>' 
+    return fmt % (order_id, order_id, cgi.escape(spreadsheets[i].spreadsheet_name), cgi.escape(app_name))

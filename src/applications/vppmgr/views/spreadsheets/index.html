@@ -1,31 +1,30 @@
 {{extend 'layout.html'}}
-{{from spreadsheets_helper import spreadsheet_import_link, spreadsheet_app_select}}
+{{from spreadsheets_helper import spreadsheet_show_import_row}}
 
-<style>
-	.even { background-color: #FFC; }
-</style>
-
-<h1>Manage VPP Spreadsheets</h1>
-
-<p>Instructions: Click link on spreadsheet name to import codes from 
-	one spreadsheet, or click the <strong>Import All</strong> link to import
-	from all.<br/>
-	<a href="/vppmgr/spreadsheets/import_all">Import All</a></p>
-<p>Assign an app registered in the database to each spreadsheet
-	and click <strong>Submit</strong>, or click the <strong>Clear Apps</strong> link
-	to reset all spreadsheets to the closest matching app name.<br/>
-	<a href="/vppmgr/spreadsheets/clear_apps">Clear Apps<a/></p>
+<p>Instructions: 
+  Click <strong>Show</strong> link to see information contained
+  in spreadsheet. Click <strong>Import</strong> link next to spreadsheet name 
+  to import codes from one spreadsheet or click
+	<a href="/vppmgr/spreadsheets/import_all">Import All</a> to update
+	data from all spreadsheets.</p>
 <form method="POST">
 	<table>
-	<tr><td style="text-align:right;">Spreadsheet Name</td><td>App Name</td></tr>
+	<tr><td>Show</td><td>Import</td><td>Spreadsheet</td><td>Assigned App</td></tr>
 {{for i, ss in enumerate(spreadsheets):}}
+{{order_id = spreadsheets[i].id}}
+{{app_name = 'Unknown'}}
+{{app = spreadsheets[i].app}}
+{{if app is not None:}}
+{{app_name = app.name}}
+{{pass}}
 	<tr class="{{='odd' if i%2 else 'even'}}">
-		<td style="text-align:right;">{{=XML(spreadsheet_import_link(spreadsheets, i))}}</td>
-		<td>{{=XML(spreadsheet_app_select(spreadsheets, i, apps))}}</td>
+    <td><a href="{{=URL(f='show', args=[order_id])}}">Show</a></td>
+    <td><a href="{{=URL(f='import_one', args=[order_id])}}">Import</a></td>
+    <td>{{=spreadsheets[i].spreadsheet_name}}</td>
+    <td>{{=app_name}}</td>
 	</tr>
 {{pass}}
 	</table>
 	<input type="submit" name="submit" value="Submit" />
 </form>
-<p><a href="/vppmgr/spreadsheets/import_all">Import All</a><br/>
-	<a href="/vppmgr/spreadsheets/clear_apps">Clear Apps<a/></p>
+<p><a href="/vppmgr/spreadsheets/import_all">Import All</a></p>
