@@ -9,7 +9,7 @@
 	data from all spreadsheets.</p>
 <form method="POST">
 	<table>
-	<tr><td>Show</td><td>Import</td><td>Spreadsheet</td><td>Assigned App</td></tr>
+	<tr><td>Show</td><td>Import</td><td width="30%">Spreadsheet</td><td>Order Number</td><td>Codes</td><td>Unused</td><td width="30%">Assigned App</td></tr>
 {{for i, ss in enumerate(spreadsheets):}}
 {{order_id = spreadsheets[i].id}}
 {{app_name = 'Unknown'}}
@@ -21,6 +21,9 @@
     <td><a href="{{=URL(f='show', args=[order_id])}}">Show</a></td>
     <td><a href="{{=URL(f='import_one', args=[order_id])}}">Import</a></td>
     <td>{{=spreadsheets[i].spreadsheet_name}}</td>
+    <td>{{=spreadsheets[i].order_number}}</td>
+    <td>{{=db(db.vpp_code.vpp_order==order_id).count()}}</td>
+    <td>{{=db((db.vpp_code.vpp_order==order_id) & (db.vpp_code.status=='Unused')).count()}}</td>
     <td>{{=app_name}}</td>
 	</tr>
 {{pass}}

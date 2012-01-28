@@ -325,11 +325,11 @@ class VppManager:
             order_number = vpp_order['order_number']
             spreadsheet_name = vpp_order['spreadsheet_name']
             product_name = vpp_order['product_name']
-            db.vpp_order.update_or_insert(db.vpp_order.order_number == order_number,
+            db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name==spreadsheet_name,
                 order_number=order_number,
                 spreadsheet_name=spreadsheet_name,
                 product_name=product_name)
-            db_order = db(db.vpp_order.order_number == order_number).select(limitby=(0,1)).first()
+            db_order = db(db.vpp_order.spreadsheet_name==spreadsheet_name).select(limitby=(0,1)).first()
             stats['orders'] += 1
             for vpp_code in vpp_order['codes']:
                 device = None
