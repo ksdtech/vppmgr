@@ -6,10 +6,23 @@ def _find_app():
     if app is None:
          raise HTTP(404)
     return app
-
+    
+def _filtered_by_group():
+    group_id = request.vars['group']
+    group_name = None
+    app_rows = vpp_manager.select_apps(group_id)
+    group_rows = vpp_manager.select_groups()
+    if group_id is not None:
+        group_names = [g.name for g in group_rows if g.id==int(group_id)]
+        if len(group_names) > 0:
+            group_name = group_names[0]
+        else:
+            group_id = None
+    return (app_rows, group_rows, group_id, group_name)
+    
 def index():
-    app_rows = vpp_manager.select_apps()
-    return dict(apps=app_rows)
+    app_rows, group_rows, group_id, group_name = _filtered_by_group()
+    return dict(apps=app_rows, groups=group_rows, group=group_id, group_name=group_name)
 
 def show():
     app = _find_app()
@@ -49,18 +62,9 @@ def provision():
                 response.flash = "Message sent"
             else:
                 response.flash = "Problem sending message"
-    group_id = request.vars['group']
-    group_name = None
-    app_rows = vpp_manager.select_apps(group_id)
-    group_rows = vpp_manager.select_groups()
+    app_rows, group_rows, group_id, group_name = _filtered_by_group()
     device_rows = vpp_manager.select_devices()
-    if group_id is not None:
-        group_names = [g.name for g in group_rows if g.id==int(group_id)]
-        if len(group_names) > 0:
-            group_name = group_names[0]
-        else:
-            group_id = None
-    return dict(apps=app_rows, devices=device_rows, groups=group_rows, group=group_id, group_name=group_name)
+    return dict(apps=app_rows, groups=group_rows, group=group_id, group_name=group_name, devices=device_rows)
 
 def import_one():
     app = _find_app()

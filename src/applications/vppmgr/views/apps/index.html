@@ -3,14 +3,24 @@
 <p>Instructions: Click <strong>Show</strong> for information on 
   one of these apps, or click <a href="{{=URL('import_all')}}">Import All</a>
   to import all apps from the master Google Spreadsheet.</p>
+<h4>Filter by Groups</h4>
+<ul>
+{{for i, g in enumerate(groups):}}
+	<li><a href="{{=URL(f='index', vars={'group': g.id})}}">{{=g.name}}</a></li>
+{{pass}}
+  <li><a href="{{=URL('index')}}">List All</a></li>
+</ul>
 <table>
-  <tr><td>Show</td><td>Import</td><td>App Name</td><td>Price</td></tr>
-{{for i, ss in enumerate(apps):}}
+  <tr><td>Show</td><td>Import</td><td>App Name</td><td>Price</td><td>Codes</td><td>Unused</td></tr>
+{{for i, app in enumerate(apps):}}
+{{app_id = app.id}}
 		<tr class="{{='odd' if i%2 else 'even'}}">
-			<td><a href="{{=URL(f='show', args=[apps[i].id])}}">Show</td>
-			<td><a href="{{=URL(f='import_one', args=[apps[i].id])}}">Import</td>
-			<td>{{=apps[i].name}}</td>
-			<td>${{=apps[i].price}}</td>
+			<td><a href="{{=URL(f='show', args=[app_id])}}">Show</td>
+			<td><a href="{{=URL(f='import_one', args=[app_id])}}">Import</td>
+			<td>{{=app.name}}</td>
+			<td>${{=app.price}}</td>
+      <td>{{=db((db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id)).count()}}</td>
+      <td>{{=db((db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id) & (db.vpp_code.status=='Unused')).count()}}</td>
 		</tr>
 {{pass}}
 </table>

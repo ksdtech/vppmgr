@@ -431,5 +431,5 @@ class VppManager:
             status = 'Sent'
             if not success:
                 status = 'Errors: %s' % (self.mailer.error)
-            db.invitation(msg_id).update(last_sent_on=timestamp, last_status=status)
+            db.invitation(msg_id).update_record(last_sent_on=timestamp, last_status=status)
         return msg_id

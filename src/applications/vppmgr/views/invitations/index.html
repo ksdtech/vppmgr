@@ -1,0 +1,16 @@
+{{extend 'layout.html'}}
+
+<table>
+  <tr><td>Show</td><td>Recipient</td><td>Created</td><td>Sent</td><td>Apps</td><td>Codes</td></tr>
+{{for i, invite in enumerate(invites):}}
+{{invite_id = invite.id}}
+		<tr class="{{='odd' if i%2 else 'even'}}">
+			<td><a href="{{=URL(f='show', args=[invite_id])}}">Show</td>
+			<td>{{=invite.recipient}}</td>
+			<td>{{=invite.created_on}}</td>
+			<td>{{=invite.last_sent_on}}</td>
+			<td>{{=len(invite.apps)}}</td>
+			<td>{{=len(invite.vpp_codes)}}</td>
+		</tr>
+{{pass}}
+</table>
