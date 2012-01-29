@@ -53,6 +53,8 @@ db.define_table('app',
 db.define_table('device',
     Field('name', 'string',
         label=T('Name'), unique=True),
+    Field('numeric_order', 'integer',
+        label=T('Numeric Order'), default=0, notnull=True),
     Field('asset_number', 'string',
         label=T('Asset Number')), # unique=True),
     Field('serial_number', 'string',
@@ -143,7 +145,6 @@ vpp_manager=VppManager(db, app_settings, mail)
 
 # Populate newly created database from vppusers.csv
 # and from Google spreadsheets
-
 if db(db.auth_user).isempty():
     vpp_manager.populate_user_table()
     

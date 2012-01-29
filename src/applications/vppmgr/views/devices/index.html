@@ -1,0 +1,14 @@
+{{response.subtitle = 'Devices'}}
+{{extend 'layout.html'}}
+
+<table>
+  <tr><td>Show</td><td>Name</td><td>Serial Number</td></tr>
+{{for i, device in enumerate(devices):}}
+{{device_id = device.id}}
+		<tr class="{{='odd' if i%2 else 'even'}}">
+			<td><a href="{{=URL(f='show', args=[device_id])}}">Show</td>
+			<td>{{=device.name}}</td>
+			<td>{{=device.serial_number}}</td>
+		</tr>
+{{pass}}
+</table>

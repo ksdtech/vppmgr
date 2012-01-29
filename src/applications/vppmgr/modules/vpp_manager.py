@@ -141,9 +141,9 @@ class VppManager:
         row_count = worksheet_entry.row_count.text
         # print "worksheet id: %s, %s rows" % (worksheet_key, row_count)
         query = gdata.spreadsheet.service.CellQuery()
-        query['min-row'] = '11'        
-        query['min-col'] = '1'        
-        query['max_col'] = '1'        
+        query['min-row'] = '11'
+        query['min-col'] = '1'
+        query['max_col'] = '1'
         cell_feed = ss_client.GetCellsFeed(order_key, worksheet_key, query=query)
         for i, entry in enumerate(cell_feed.entry):
             # Rows 11 - 11+n:
@@ -158,7 +158,7 @@ class VppManager:
                 return (worksheet_key, row)
         return (None, None)
         
-    def _update_vpp_cells_in_row(self, ss_client, spreadsheet_name, order_key, worksheet_key, row, status, user_email, device_name):
+    def _update_vpp_cells_in_row(self, ss_client, spreadsheet_name, order_key, worksheet_key, row, user_email, device_name, status):
         print 'Updating row %d in %s: %s %s %s' % (row, spreadsheet_name, status, user_email, device_name)
         c4 = ss_client.UpdateCell(row=row, col=4, inputValue=status, 
             key=order_key, wksht_id=worksheet_key)
@@ -178,7 +178,7 @@ class VppManager:
         print 'succeeded'
         return True
 
-    def _next_pending_vpp_code(self, ss_client, app_id, user_email, device_name):
+    def _next_available_vpp_code(self, ss_client, app_id, user_email, device_name, status='Pending'):
         db = self.db
         vpp_code = db((db.vpp_code.status=='Unused') & 
             (db.vpp_code.vpp_order==db.vpp_order.id) & 
@@ -190,8 +190,8 @@ class VppManager:
             if order_key is not None:
                 worksheet_key, row = self._find_vpp_code_in_spreadsheet(ss_client, spreadsheet_name, order_key, vpp_code.code)
                 if row is not None:
-                    success = self._update_vpp_cells_in_row(ss_client, spreadsheet_name, order_key, worksheet_key, row, 'Pending', user_email, device_name)
-                    vpp_code.update_record(status='Pending')
+                    success = self._update_vpp_cells_in_row(ss_client, spreadsheet_name, order_key, worksheet_key, row, user_email, device_name, status)
+                    vpp_code.update_record(status=status)
                     return vpp_code
         return None
     
@@ -273,7 +273,7 @@ class VppManager:
 
     def select_devices(self):
         db = self.db
-        return db().select(db.device.ALL, orderby=db.device.name)
+        return db().select(db.device.ALL, orderby=[db.device.numeric_order, db.device.name])
 
     # database insert operations
     def populate_user_table(self):
@@ -290,6 +290,7 @@ class VppManager:
 
     def populate_device_table(self):
         db = self.db
+        stats = dict(created=0, updated=0)
         file_name = self.settings.populate_folder + 'device.csv'
         reader = csv.DictReader(open(file_name))
         for row in reader:
@@ -299,13 +300,25 @@ class VppManager:
                 user = db(db.auth_user.email == user_email).select(limitby=(0,1)).first()
                 if user is not None:
                     owner_id = user.id
-            db.device.insert(name=row['name'],
+            n = 0
+            name = row['name']
+            m = re.search(r'-(\d+)\s*$', name)
+            if m:
+                n = int(m.group(1))
+            new_id = db.device.update_or_insert(db.device.name==name,
+                name=name,
+                numeric_order=n,
                 asset_number=row['asset_number'],
                 serial_number=row['serial_number'],
                 apple_device_id=row['apple_device_id'],
                 location=row['location'],
                 room=row['room'],
                 owner=owner_id)
+            if new_id:
+                stats['created'] += 1
+            else:
+                stats['updated'] += 1
+        return stats
     
     def populate_app_table(self):             
         apps = self.read_apps()
@@ -319,18 +332,21 @@ class VppManager:
     # database update operations
     def update_orders(self, vpp_orders):
         db = self.db
-        stats = dict(orders=0, redeemed=0, reserved=0, unused=0)
+        stats = dict(created=0, updated=0, redeemed=0, reserved=0, pending=0, unused=0)
         for spreadsheet_name in vpp_orders.iterkeys():
             vpp_order = vpp_orders[spreadsheet_name]
             order_number = vpp_order['order_number']
             spreadsheet_name = vpp_order['spreadsheet_name']
             product_name = vpp_order['product_name']
-            db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name==spreadsheet_name,
+            new_id = db.vpp_order.update_or_insert(db.vpp_order.spreadsheet_name==spreadsheet_name,
                 order_number=order_number,
                 spreadsheet_name=spreadsheet_name,
                 product_name=product_name)
+            if new_id:
+                stats['created'] += 1
+            else:
+                status['updated'] += 1
             db_order = db(db.vpp_order.spreadsheet_name==spreadsheet_name).select(limitby=(0,1)).first()
-            stats['orders'] += 1
             for vpp_code in vpp_order['codes']:
                 device = None
                 owner = None
@@ -344,17 +360,21 @@ class VppManager:
                     status = status.capitalize()
                     if status == 'Redeemed':
                         stats['redeemed'] += 1
-                    else:
-                        status = 'Reserved'
+                    elif status == 'Reserved':
                         stats['reserved'] += 1         
+                    elif status == 'Pending':
+                        stats['pending'] += 1
                     if user_email is None:
                         user_email = self.settings.default_vpp_user
+                    user_email = user_email.lower()
                     db.auth_user.update_or_insert(email=user_email)
                     owner = db(db.auth_user.email == user_email).select(limitby=(0,1)).first()
                     if device_name is None:
                         device_name = 'Unknown'
-                    db.device.update_or_insert(name=device_name)
-                    device = db(db.device.name == device_name).select(limitby=(0,1)).first()
+                    device_name_nocase = device_name.upper()
+                    db.device.update_or_insert(db.device.name.upper() == device_name_nocase,
+                        name=device_name)
+                    device = db(db.device.name.upper() == device_name_nocase).select(limitby=(0,1)).first()
                 code = vpp_code['code']
                 link = vpp_code['link']
                 db.vpp_code.update_or_insert(db.vpp_code.code == code,
@@ -392,7 +412,7 @@ class VppManager:
         return stats
 
     # email operations
-    def queue_and_send_message(self, recipient, device, apps):
+    def queue_and_send_message(self, recipient, devices, apps):
         ss_client = self._ss_client()
         body_lines = [ ]
         body_lines.append('Here are the links to your redemption codes and')
@@ -400,17 +420,21 @@ class VppManager:
 
         app_ids = [ ] 
         vpp_code_ids = [ ]
-        for app in apps:
-            app_ids.append(app.id)
-            body_lines.append('')
-            body_lines.append('%s:' % (app.name))
-            vpp_code = self._next_pending_vpp_code(ss_client, app.id, recipient, device.name)
-            if vpp_code is not None:
-                if vpp_code:
+        status = 'Pending' # for first device in list
+        for device in devices:
+            for app in apps:
+                app_ids.append(app.id)
+                body_lines.append('')
+                body_lines.append('%s:' % (app.name))
+                vpp_code = self._next_avilable_vpp_code(ss_client, app.id, recipient, device.name, status)
+                if vpp_code is not None:
                     vpp_code_ids.append(vpp_code.id)
-                    body_lines.append('VPP: %s' % (vpp_code.app_store_link))
-                else:
-                    body_lines.append('$%s: %s' % (app.price, app.app_store_link))
+                if status == 'Pending':
+                    if vpp_code is not None:
+                        body_lines.append('VPP: %s' % (vpp_code.app_store_link))
+                    else:
+                        body_lines.append('$%s: %s' % (app.price, app.app_store_link))
+            status = 'Reserved' # for other devices in list
         body_lines.append('')
         body_lines.append('--App Administrator')            
 

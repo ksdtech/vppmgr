@@ -16,6 +16,10 @@ response.menu = [
         (T('Assign Apps'), URL('spreadsheets','assign_apps')==URL(), URL('spreadsheets','assign_apps'), []),
         (T('Clear Apps'),  URL('spreadsheets','clear_apps')==URL(),  URL('spreadsheets','clear_apps'), [])
     ]),
+    (T('Devices'),      URL('devices','index')==URL(),      URL('devices','index'), [
+        (T('List'),        URL('devices','index')==URL(),            URL('devices','index'), []),
+        (T('Import All'),  URL('devices','import_all')==URL(),       URL('devices','import_all'), []),
+    ]),
     (T('Invitations'),  URL('invitations','index')==URL(),  URL('invitations','index'), [
         (T('List'),        URL('invitations','index')==URL(),        URL('invitations','index'), []),
     ]),

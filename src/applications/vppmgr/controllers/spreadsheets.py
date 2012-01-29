@@ -50,7 +50,7 @@ def assign_apps():
                 if vpp_order is not None and app_id != curr_app_id:
                     vpp_order.update_record(app=app_id)
                     n += 1
-        response.flash = '%d spreadsheet records were updated' % (n)
+        response.flash = 'Updated %d spreadsheet records' % (n)
     order_rows = vpp_manager.select_orders()
     app_rows = vpp_manager.select_apps()
     return dict(spreadsheets=order_rows, apps=app_rows)        
@@ -65,11 +65,15 @@ def import_one():
     vpp_order = _find_order()
     vpp_orders = vpp_manager.read_orders([ vpp_order.spreadsheet_name ])
     updates = vpp_manager.update_orders(vpp_orders)
-    session.flash = str(updates)
+    fmt = 'Created %d and updated %d spreadsheet records (%d codes redeemed, %d reserved, %d pending, %d unused)'
+    session.flash = fmt % (updates['created'], updates['updated'],
+        updates['redeemed'], updates['reserved'], updates['pending'], updates['unused'])
     redirect(URL('index'))
 
 # GET /vppmgr/spreadsheets/import_all    
 def import_all():
     updates = vpp_manager.populate_order_table()
-    session.flash = str(updates)
+    fmt = 'Created %d and updated %d spreadsheet records (%d codes redeemed, %d reserved, %d pending, %d unused)'
+    session.flash = fmt % (updates['created'], updates['updated'],
+        updates['redeemed'], updates['reserved'], updates['pending'], updates['unused'])
     redirect(URL('index'))

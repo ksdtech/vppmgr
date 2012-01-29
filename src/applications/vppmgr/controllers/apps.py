@@ -39,13 +39,14 @@ def provision():
             if user_count < 1:
                 errors.append('No such user: %s' % (user_email))
         device = None
-        device_id = request.post_vars['device']
-        if device_id is None or device_id == '':
+        device_ids = request.post_vars['device']
+        print device_id
+        if device_ids is None or len(device_ids) == 0:
             errors.append('No device specified')
         else:
-            device = db.device(device_id)
-            if device is None:
-                errors.append('Device not found')
+            devices = db(db.device.id.belongs(device_ids)).select(db.device.ALL)
+            if len(devices) == 0:
+                errors.append('No devices found')
         app_ids = [ ]
         for k in request.post_vars.iterkeys():
             m = re.match(r'app_(\d+)', k)
@@ -57,7 +58,7 @@ def provision():
             response.flash = "\n".join(errors)
         else:
             apps = db(db.app.id.belongs(app_ids)).select()
-            success = vpp_manager.queue_and_send_message(user_email, device, apps)
+            success = vpp_manager.queue_and_send_message(user_email, devices, apps)
             if success:
                 response.flash = "Message sent"
             else:
