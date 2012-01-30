@@ -40,6 +40,9 @@ def provision():
                 errors.append('No such user: %s' % (user_email))
         devices = None
         device_ids = request.post_vars['devices']
+        # multiple select returns single string if only one selected!
+        if (isinstance(device_ids, str)):
+            device_ids = [ device_ids ]
         if len(device_ids) == 0:
             errors.append('No devices selected')
         else:
@@ -48,10 +51,15 @@ def provision():
                 errors.append('No devices found')
         apps = None
         app_ids = request.post_vars['apps']
+        # multiple select returns single string if only one selected!
+        if (isinstance(app_ids, str)):
+            app_ids = [ app_ids ]
         if len(app_ids) == 0:
             errors.append('No apps selected')
         else:
             apps = db(db.app.id.belongs(app_ids)).select()
+            if len(apps) == 0:
+                errors.append('No apps found')
         if len(errors) == 0:
             success = vpp_manager.queue_and_send_message(user_email, devices, apps)
             if success:

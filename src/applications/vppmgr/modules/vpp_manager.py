@@ -423,7 +423,7 @@ class VppManager:
         for app in apps:
             status = 'Pending' # for first device in list
             for device in devices:
-                vpp_code = self._next_avilable_vpp_code(ss_client, app.id, recipient, device.name, status)
+                vpp_code = self._next_available_vpp_code(ss_client, app.id, recipient, device.name, status)
                 if vpp_code is not None:
                     vpp_code_ids.append(vpp_code.id) # include all codes pending or reserved
                 if status == 'Pending': # only include codes for first device
@@ -435,6 +435,8 @@ class VppManager:
                         body_lines.append('VPP: %s' % (vpp_code.app_store_link))
                     else:
                         body_lines.append('$%s: %s' % (app.price, app.app_store_link))
+                if vpp_code is None:
+                    break
         body_lines.append('')
         body_lines.append('--App Administrator')            
 

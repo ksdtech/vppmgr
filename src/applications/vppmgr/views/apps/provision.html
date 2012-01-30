@@ -2,34 +2,10 @@
 {{extend 'layout.html'}}
 
 <script language='javascript' src="{{=URL('static','js/jquery-ui-1.8.17.custom.min.js')}}"></script>
-<script language='javascript' src="{{=URL('static','js/jquery.twosidedmultiselect.js')}}"></script>
+<script language='javascript' src="{{=URL('static','js/jquery.multiselect.min.js')}}"></script>
 <link rel="stylesheet" type="text/css" href="{{=URL('static','css/jquery-ui-1.8.17.custom.css')}}" />
+<link rel="stylesheet" type="text/css" href="{{=URL('static','css/jquery.multiselect.css')}}" />
 
-<!-- styles for twosidedmultiselect -->
-<style>
-.tsmsselect {
-  width: 40%;
-  float: left;
-}
-.tsmsselect select {
-  width: 100%;
-}
-.tsmsoptions {
-  width: 20%;
-  float: left;
-}
-.tsmsoptions p {
-  border: 1px solid #ccc;
-  margin: 4px 10px 4px 10px;
-  padding: 4px;
-  text-align: center;
-  cursor: pointer;
-}
-.tsmsoptions p:hover {
-  color: White;
-  background-color: Silver;
-}
-</style>
 {{if group is not None:}}
 <h3>Provision Apps Filtered by Group '{{=group_name}}'</h3>
 {{else:}}
@@ -52,15 +28,18 @@ the group name.
 </ul>
 </div>
   <h5>User</h5>
-  <div>Type user name or email address.<br />
+  <div>Type user name or email address. Then press <strong>tab</strong> key 
+    to pre-select devices for that user.<br />
     <div class="ui-widget">
       <input name="user_email" id="user_email" size="80" />
     </div>
   </div>
   <h5>Devices</h5>
-  <div>Select devices to provision in left-hand list, then move them to right-hand list by clicking Add button.  
-    Undo by selecting them in right-hand list and clicking Remove button.<br />
-    <select class="multiselect" name="devices" id="devices" multiple="multiple" size="12">
+  <div>Select devices to provision in left-hand list, then move them to 
+    right-hand list by clicking <strong>Add</strong> button.  
+    Undo by selecting them in right-hand list and clicking 
+    <strong>Remove</strong> button.<br />
+    <select class="multiselect" name="devices" id="devices" multiple="multiple">
 {{for d in devices:}}
 	    <option value="{{=d.id}}">{{=d.name}}</option>
 {{pass}}
@@ -68,34 +47,46 @@ the group name.
     <div style="clear: both;"></div>
   </div>
   <h5>Apps</h5>
-  <div>Select apps to provision in left-hand list, then move them to right-hand list by clicking Add button.<br />
-    <select class="multiselect" name="apps" id="apps" multiple="multiple" size="12">
+  <div>Select apps to provision in left-hand list, then move them to 
+    right-hand list by clicking <strong>Add</strong> button.<br />
+    <select class="multiselect" name="apps" id="apps" multiple="multiple">
 {{for app in apps:}}
       <option value="{{=app.id}}">{{=app.name}}</option>
 {{pass}}
     </select>
     <div style="clear: both;"></div>
 	</div>
+	<div style="margin-top: 10px">
+	  <input type="submit" name="submit" value="Submit" />
+	</div>
 </form>
 
 <!-- autocomplete data -->
 {{user_list = ["\"%s\"" % (user.email) for user in users ]}}
+{{device_callback = URL('devices', 'by_user.json')}}
 {{=SCRIPT('var user_list = [' + ",".join(user_list) + '];', _language='javascript')}}
 
 <!-- activate multiselect script and autocomplete widget -->
 <script language="javascript" type="text/javascript">
-  $(function() {
-    $(".multiselect").twosidedmultiselect();
-    $("#user_email").autocomplete({source: user_list});
-    $("#user_email").onblur(function () {
+$(function() {
+  $("#devices").multiselect();
+  $("#apps").multiselect();
+  $("#user_email").autocomplete({
+    source: user_list,
+    change: function () {
       var user = $(this).val();
       $.ajax({
-        url='http://127.0.0.1:8000/vppmgr/devices/by_user.json?user=' + user,
-        dataType='json',
+        url: '{{=device_callback}}?user=' + user,
+        dataType: 'json',
         success: function(data) {
-          var device_names = data['devices'];
+          $("#devices option").removeAttr("selected");
+          $.each(data['devices'], function(i, id) {
+            $("#devices option[value='" + id + "']").attr("selected", "selected");
+          });
+          $("#devices").multiselect("refresh");
         }
       });
-    });
+    }
   });
+});
 </script>

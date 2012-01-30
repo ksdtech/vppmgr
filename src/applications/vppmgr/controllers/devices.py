@@ -11,5 +11,5 @@ def import_all():
 
 def by_user():
     email = request.vars['user'] 
-    devices = db((db.device.owner==db.auth_user.id) & (db.auth_user.email==email)).select(db.device.name)
-    return dict(devices=[device.name for device in devices])
+    devices = db((db.device.owner==db.auth_user.id) & (db.auth_user.email==email)).select(db.device.id)
+    return dict(devices=[device.id for device in devices])
