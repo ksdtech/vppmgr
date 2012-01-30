@@ -38,34 +38,32 @@ def provision():
             user_count = db(db.auth_user.email == user_email).count()
             if user_count < 1:
                 errors.append('No such user: %s' % (user_email))
-        device = None
-        device_ids = request.post_vars['device']
-        print device_id
-        if device_ids is None or len(device_ids) == 0:
-            errors.append('No device specified')
+        devices = None
+        device_ids = request.post_vars['devices']
+        if len(device_ids) == 0:
+            errors.append('No devices selected')
         else:
             devices = db(db.device.id.belongs(device_ids)).select(db.device.ALL)
             if len(devices) == 0:
                 errors.append('No devices found')
-        app_ids = [ ]
-        for k in request.post_vars.iterkeys():
-            m = re.match(r'app_(\d+)', k)
-            if m is not None and request.post_vars[k] == '1':
-                app_ids.append(int(m.group(1)))
+        apps = None
+        app_ids = request.post_vars['apps']
         if len(app_ids) == 0:
             errors.append('No apps selected')
-        if len(errors) > 0:
-            response.flash = "\n".join(errors)
         else:
             apps = db(db.app.id.belongs(app_ids)).select()
+        if len(errors) == 0:
             success = vpp_manager.queue_and_send_message(user_email, devices, apps)
             if success:
                 response.flash = "Message sent"
             else:
                 response.flash = "Problem sending message"
+        else:
+            response.flash = "\n".join(errors)
     app_rows, group_rows, group_id, group_name = _filtered_by_group()
+    user_rows = db().select(db.auth_user.ALL, orderby=db.auth_user.email)
     device_rows = vpp_manager.select_devices()
-    return dict(apps=app_rows, groups=group_rows, group=group_id, group_name=group_name, devices=device_rows)
+    return dict(apps=app_rows, groups=group_rows, group=group_id, group_name=group_name, users=user_rows, devices=device_rows)
 
 def import_one():
     app = _find_app()

@@ -8,3 +8,8 @@ def import_all():
     updates = vpp_manager.populate_device_table()
     session.flash = "Created %d and updated %d devices" % (updates['created'], updates['updated'])
     redirect(URL('index'))
+
+def by_user():
+    email = request.vars['user'] 
+    devices = db((db.device.owner==db.auth_user.id) & (db.auth_user.email==email)).select(db.device.name)
+    return dict(devices=[device.name for device in devices])

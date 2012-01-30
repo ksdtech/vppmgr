@@ -1,8 +1,11 @@
 {{response.subtitle = 'Provision Apps'}}
 {{extend 'layout.html'}}
 
-<!-- jquery script and styles to move between two select lists -->
-<script language="javascript" type="text/javascript" src="{{=URL('static','js/jquery.twosidedmultiselect.js')}}"></script>
+<script language='javascript' src="{{=URL('static','js/jquery-ui-1.8.17.custom.min.js')}}"></script>
+<script language='javascript' src="{{=URL('static','js/jquery.twosidedmultiselect.js')}}"></script>
+<link rel="stylesheet" type="text/css" href="{{=URL('static','css/jquery-ui-1.8.17.custom.css')}}" />
+
+<!-- styles for twosidedmultiselect -->
 <style>
 .tsmsselect {
   width: 40%;
@@ -42,7 +45,7 @@
 <div>To show only the apps for a particular group, click the link with
 the group name.
 <ul>
-{{for i, g in enumerate(groups):}}
+{{for g in groups:}}
 	<li><a href="{{=URL(f='provision', vars={'group': g.id})}}">{{=g.name}}</a></li>
 {{pass}}
   <li><a href="{{=URL('provision')}}">List All</a></li>
@@ -50,32 +53,49 @@ the group name.
 </div>
   <h5>User</h5>
   <div>Type user name or email address.<br />
-    <input type="text" name="user_email" id="user_email" size="80" />
+    <div class="ui-widget">
+      <input name="user_email" id="user_email" size="80" />
+    </div>
   </div>
   <h5>Devices</h5>
-  <p>Move device(s) to selected list with Add and Remove buttons.<br />
-    <select class="multiselect" name="device" id="device" multiple="multiple" size="12">
+  <div>Select devices to provision in left-hand list, then move them to right-hand list by clicking Add button.  
+    Undo by selecting them in right-hand list and clicking Remove button.<br />
+    <select class="multiselect" name="devices" id="devices" multiple="multiple" size="12">
 {{for d in devices:}}
 	    <option value="{{=d.id}}">{{=d.name}}</option>
 {{pass}}
 	  </select>
-    <div style="clear: both;">
+    <div style="clear: both;"></div>
   </div>
   <h5>Apps</h5>
-  <div>Check apps to provision.<br />
-  <table>
-    <tr><td><input type="checkbox" class="appcheck" name="check_all" onclick="jQuery('.appcheck').attr('checked', 'checked')" />&nbsp;Check All</td></tr>
-		<tr><td><input type="checkbox" class="appcheck" name="check_none" onclick="jQuery('.appcheck').removeAttr('checked');" />&nbsp;Check None</td></tr>
-{{for i, ss in enumerate(apps):}}
-		<tr class="{{='odd' if i%2 else 'even'}}">
-			<td><input type="checkbox" class="appcheck" name="{{='app_%d' % apps[i].id}}" value="1" />&nbsp;{{=apps[i].name}}, {{=apps[i].price}}</td>
-		</tr>
+  <div>Select apps to provision in left-hand list, then move them to right-hand list by clicking Add button.<br />
+    <select class="multiselect" name="apps" id="apps" multiple="multiple" size="12">
+{{for app in apps:}}
+      <option value="{{=app.id}}">{{=app.name}}</option>
 {{pass}}
-    <tr><td><input type="submit" name="submit" value="Submit" /></td></tr>
-	</table>
+    </select>
+    <div style="clear: both;"></div>
 	</div>
 </form>
 
+<!-- autocomplete data -->
+{{user_list = ["\"%s\"" % (user.email) for user in users ]}}
+{{=SCRIPT('var user_list = [' + ",".join(user_list) + '];', _language='javascript')}}
+
+<!-- activate multiselect script and autocomplete widget -->
 <script language="javascript" type="text/javascript">
-  $(".multiselect").twosidedmultiselect();
+  $(function() {
+    $(".multiselect").twosidedmultiselect();
+    $("#user_email").autocomplete({source: user_list});
+    $("#user_email").onblur(function () {
+      var user = $(this).val();
+      $.ajax({
+        url='http://127.0.0.1:8000/vppmgr/devices/by_user.json?user=' + user,
+        dataType='json',
+        success: function(data) {
+          var device_names = data['devices'];
+        }
+      });
+    });
+  });
 </script>
