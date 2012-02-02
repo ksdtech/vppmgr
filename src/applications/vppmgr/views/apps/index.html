@@ -12,7 +12,7 @@
   <li><a href="{{=URL('index')}}">List All</a></li>
 </ul>
 <table>
-  <tr><td>Show</td><td>Import</td><td>App Name</td><td>Price</td><td>Codes</td><td>Unused</td></tr>
+  <tr><td>Show</td><td>Import</td><td>App Name</td><td>Price</td><td>Purchased</td><td>Redeemed</td><td>Pending</td><td>Reserved</td><td>Unused</td></tr>
 {{for i, app in enumerate(apps):}}
 {{app_id = app.id}}
 		<tr class="{{='odd' if i%2 else 'even'}}">
@@ -20,8 +20,11 @@
 			<td><a href="{{=URL(f='import_one', args=[app_id])}}">Import</td>
 			<td>{{=app.name}}</td>
 			<td>${{=app.price}}</td>
-      <td>{{=db((db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id)).count()}}</td>
-      <td>{{=db((db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id) & (db.vpp_code.status=='Unused')).count()}}</td>
+      <td>{{=db(app_codes(app_id)).count()}}</td>
+      <td>{{=db(app_codes_with_status(app_id, 'Redeemed')).count()}}</td>
+      <td>{{=db(app_codes_with_status(app_id, 'Pending')).count()}}</td>
+      <td>{{=db(app_codes_with_status(app_id, 'Reserved')).count()}}</td>
+      <td>{{=db(app_codes_with_status(app_id, 'Unused')).count()}}</td>
 		</tr>
 {{pass}}
 </table>

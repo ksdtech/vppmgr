@@ -139,6 +139,15 @@ db.define_table('invitation',
     format='%(recipient)s %(created_on)s %(subject)s',
     migrate=settings.migrate)
     
+# query scopes  
+def app_codes(app_id):
+    return (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id) 
+
+# query scopes  
+def app_codes_with_status(app_id, status):
+    return (db.vpp_code.vpp_order==db.vpp_order.id) & (db.vpp_order.app==app_id) & (db.vpp_code.status==status) 
+
+   
 # Create our manager instance
 from vpp_manager import VppManager
 vpp_manager=VppManager(db, app_settings, mail)
